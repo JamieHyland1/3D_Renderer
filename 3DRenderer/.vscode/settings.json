@@ -6,5 +6,8 @@
             "binaryPath": "c:\\Users\\Jamie\\documents\\Pikuma 3D graphics\\3DRenderer\\renderer",
             "binaryArgs": []
         }
-    ]
+    ],
+    "files.associations": {
+        "stdint.h": "c"
+    }
 }
