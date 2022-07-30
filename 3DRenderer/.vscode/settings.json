@@ -1,0 +1,15 @@
+{
+    "makefile.extensionOutputFolder": "./.vscode",
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "c:\\Users\\Jamie\\documents\\Pikuma 3D graphics\\3DRenderer",
+            "binaryPath": "c:\\Users\\Jamie\\documents\\Pikuma 3D graphics\\3DRenderer\\renderer",
+            "binaryArgs": []
+        }
+    ],
+    "files.associations": {
+        "stdint.h": "c",
+        "stdbool.h": "c",
+        "stdio.h": "c"
+    }
+}

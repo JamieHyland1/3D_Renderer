@@ -1,0 +1,7 @@
+C:\MinGW\bin\mingw32-make.exe mingw32-make --dry-run --keep-going --print-directory
+mingw32-make: Entering directory 'c:/Users/Jamie/documents/Pikuma 3D graphics/3DRenderer'
+ 
+mingw32-make: *** No rule to make target 'mingw32-make'.
+
+mingw32-make: Leaving directory 'c:/Users/Jamie/documents/Pikuma 3D graphics/3DRenderer'
+ 
