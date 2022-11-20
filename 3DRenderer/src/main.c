@@ -55,6 +55,7 @@ vec2_t project(vec3_t v){
 
 void update(void){
     int time_to_wait = FRAME_TARGET_TIME - (SDL_GetTicks()-previous_frame_time);
+
     if(time_to_wait > 0 && time_to_wait <= FRAME_TARGET_TIME){
         SDL_Delay(time_to_wait);
     }
@@ -126,14 +127,9 @@ void render(void){
     
     uint32_t col = 0xFFAB07E0;
     uint32_t col2 = 0xFF359DFA;
-    render_color_buffer();
+    //render_color_buffer();
     clear_color_buffer_gradient(col,col2);
-    for(int i = 0; i < N_MESH_FACES; i++){
-        triangle_t current_triangle = triangles_to_render[i];                       
-        drawRect(current_triangle.points[0].x,current_triangle.points[0].y, 5, 5, 0xFF000000);
-        drawRect(current_triangle.points[1].x,current_triangle.points[1].y, 5, 5, 0xFF000000);
-        drawRect(current_triangle.points[2].x,current_triangle.points[2].y, 5, 5, 0xFF000000);
-    }
+   
   
     
     //draw_grid();

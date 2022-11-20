@@ -1,4 +1,6 @@
 #include "display.h"
+// This file will contain the functions necessary to display our renderer to the screen
+// It will contain various SDL functions and functions related to drawing various primitive shapes
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -117,7 +119,7 @@ void draw_grid(void){
 }
 
 void drawPixel(int x, int y, uint32_t color){
-    if((x <= window_width  && x >= 0) && (y <= window_height && y >= 0)){    
+    if((x < window_width  && x >= 0) && (y < window_height && y >= 0)){    
         int index = (y*window_width) + x;
         color_buffer[index] = color;
     }
