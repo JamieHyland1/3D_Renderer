@@ -97,6 +97,8 @@ void update(void){
 
             projected_triangle.points[j] = projected_vertex; 
         }
+
+        //draw_line(10,10,100,100);
         // save tje projected triangle in array to render
         triangles_to_render[i] = projected_triangle;
     }
@@ -130,7 +132,21 @@ void render(void){
     //render_color_buffer();
     clear_color_buffer_gradient(col,col2);
    
-  
+    for(int i = 0; i < N_MESH_FACES; i ++){
+        triangle_t tri = triangles_to_render[i];
+        //draw vertex points
+        drawRect(tri.points[0].x, tri.points[0].y, 5, 5, 0x000000);
+        drawRect(tri.points[1].x, tri.points[1].y, 5, 5, 0x000000);
+        drawRect(tri.points[2].x, tri.points[2].y, 5, 5, 0x000000);
+
+        //draw face
+        draw_triangle(
+            tri.points[0].x, tri.points[0].y,
+            tri.points[1].x, tri.points[1].y,
+            tri.points[2].x, tri.points[2].y
+            ,0xFFFFFF);
+     
+    }
     
     //draw_grid();
     SDL_RenderPresent(renderer);
