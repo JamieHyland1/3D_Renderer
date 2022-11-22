@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <C:\SDL2\include\SDL.h>
+#include <math.h>
 
 #define FPS 60
 #define FRAME_TARGET_TIME  (1000 / FPS)
@@ -25,5 +26,7 @@ void render_color_buffer(void);
 void drawPixel(int x, int y, uint32_t color);
 void drawRect(int x, int y, int w, int h, uint32_t color);
 void draw_grid(void);
+void draw_line(int x1, int y1, int x2, int y2, uint32_t color);
+void draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, uint32_t color);
 
 #endif

@@ -1,4 +1,5 @@
 #include "display.h"
+#include <math.h>
 // This file will contain the functions necessary to display our renderer to the screen
 // It will contain various SDL functions and functions related to drawing various primitive shapes
 
@@ -133,6 +134,31 @@ void render_color_buffer(void){
     );
 
     SDL_RenderCopy(renderer, color_buffer_texture, NULL, NULL);
+}
+
+void draw_line(int x1, int y1, int x2, int y2, uint32_t color){
+    int deltaX = x2-x1;
+    int deltaY = y2-y1;
+
+    int side_length = abs(deltaX) >= abs(deltaY) ? abs(deltaX) : abs(deltaY);
+
+    float x_inc = deltaX / (float)side_length;
+    float y_inc = deltaY / (float)side_length;
+
+    float currentX = x1;
+    float currentY = y1;
+
+    for(int i = 0; i < side_length; i ++){
+        drawPixel(round(currentX),round(currentY), color);
+        currentX += x_inc;
+        currentY += y_inc;
+    }
+}
+
+void draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, uint32_t color){
+    draw_line(x1, y1, x2, y2, color);
+    draw_line(x2, y2, x3, y3, color);
+    draw_line(x3, y3, x1, y1, color);
 }
 
 void destroy_window(void){
