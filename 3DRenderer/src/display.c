@@ -162,7 +162,7 @@ void draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, uint32_t colo
 }
 
 void destroy_window(void){
-    free(color_buffer);
+   
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
