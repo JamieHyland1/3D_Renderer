@@ -11,7 +11,7 @@ bool isRunning = false;
 int fov_factor = 640;
 int previous_frame_time = 0;
 
-vec3_t camera_pos = {0,0,-5};
+vec3_t camera_pos = {0,3,-5};
 
 triangle_t*  triangles_to_render = NULL;
 
@@ -22,8 +22,8 @@ uint32_t col_lerp(uint32_t a, uint32_t b, float t){
 bool setup(void){
     printf("Setting up Renderer\n");
     color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
-    printf("Frame target time:");
-    printf("%d", FRAME_TARGET_TIME);
+    printf("Frame target time:\n");
+    printf("%d\n", FRAME_TARGET_TIME);
     color_buffer_texture = SDL_CreateTexture(
         renderer,
         SDL_PIXELFORMAT_ARGB8888,
@@ -31,8 +31,11 @@ bool setup(void){
         window_width,
         window_height
     );
+
+    mesh.rotation.x = 3.14159;
     
-    load_cube_mesh_data();
+    //load_cube_mesh_data();
+    load_obj_file_data("./assets/PS1_MC.obj");
 
     if(!color_buffer){
         fprintf(stderr, "couldnt allocate memory for color buffer");
@@ -61,9 +64,9 @@ void update(void){
 
     triangles_to_render = NULL;
 
-    mesh.rotation.x += 0.01;
+    // mesh.rotation.x += 0.01;
     mesh.rotation.y += 0.01;
-    mesh.rotation.z += 0.01;
+    // mesh.rotation.z += 0.01;
     int num_faces = array_length(mesh.faces);
     for(int i = 0; i < num_faces; i ++){
         
@@ -115,6 +118,10 @@ void process_input(void){
                 isRunning = false;
             }
             else if(event.key.keysym.sym == SDLK_UP) fov_factor += 10;
+            else if(event.key.keysym.sym == SDLK_8) camera_pos.y += 1;
+            else if(event.key.keysym.sym == SDLK_2) camera_pos.y -= 1;
+            else if(event.key.keysym.sym == SDLK_4) camera_pos.x -= 1;
+            else if(event.key.keysym.sym == SDLK_6) camera_pos.x += 1;
             else if(event.key.keysym.sym == SDLK_DOWN) fov_factor -= 10;
             break;        
     }
@@ -133,15 +140,15 @@ void render(void){
     for(int i = 0; i < num_triangles; i ++){
         triangle_t tri = triangles_to_render[i];
         //draw vertex points
-        drawRect(tri.points[0].x, tri.points[0].y, 5, 5, 0x000000);
-        drawRect(tri.points[1].x, tri.points[1].y, 5, 5, 0x000000);
-        drawRect(tri.points[2].x, tri.points[2].y, 5, 5, 0x000000);
+        drawRect(tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y, 1, 1, 0x000000);
+        drawRect(tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y, 1, 1, 0x000000);
+        drawRect(tri.points[2].x+camera_pos.x, tri.points[2].y+camera_pos.y, 1, 1, 0x000000);
 
         //draw face
         draw_triangle(
-            tri.points[0].x, tri.points[0].y,
-            tri.points[1].x, tri.points[1].y,
-            tri.points[2].x, tri.points[2].y
+            tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y,
+            tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y,
+            tri.points[2].x+camera_pos.x, tri.points[2].y+camera_pos.y
             ,0xFFFFFF);
      
     }
