@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include "array.h"
 #include "mesh.h"
 
@@ -50,3 +51,92 @@ void load_cube_mesh_data(void){
       array_push(mesh.faces,cube_face);
     }
 }
+
+void load_obj_file_data(char* filename){
+    // TODO read contents of file
+    // populate mesh struct with the vertices and faces
+    FILE *file = fopen(filename,"r");
+    if(file == NULL){
+      printf("no file found");
+      exit(-1);
+    }
+      do {
+     
+        char data[50];
+
+        fgets(data,50,file);
+        if(data[0] == 'v' && data[1] == ' '){
+
+          vec3_t vertex;
+
+
+          strtok(data," ");
+          char* x =  strtok(NULL," ");
+          vertex.x = atof(x);
+          // printf("vertex x: %s\n",x);
+          char* y =  strtok(NULL," ");
+          vertex.y = atof(y);
+          // printf("vertex y: %s\n",y);
+          char* z =  strtok(NULL," ");
+          vertex.z = atof(z);
+
+          // for printf("vertex z: %s\n", z);
+          array_push(mesh.vertices,vertex);
+          // printf("the length of the array is: %d\n", array_length(mesh.vertices));
+          
+        }
+        if(data[0] == 'f'){
+            strtok(data," ");
+            face_t face;
+           
+            char* c1 = strtok(NULL," ");
+            char* c2 = strtok(NULL," ");
+            char* c3 = strtok(NULL," ");
+
+            face.a = atoi(c1);
+            face.b = atoi(c2);
+            face.c = atoi(c3);
+            
+            // printf("Each face: %d %d %d\n", face.a,face.b,face.c);
+
+            array_push(mesh.faces,face);
+
+        }
+
+
+   
+    } while (!feof(file));
+ 
+    // Closing the file
+    fclose(file);
+}
+
+
+
+
+
+  // if(ch=='v' && ignoreLine == false){
+        //   ch = fgetc(file);
+        //   readingVertices = true;
+        //   vec3_t vertex;
+        //   char* line = NULL;
+        //   do{
+        //     array_push(line,ch);
+        //     ch = fgetc(file);
+            
+
+        //   }while(ch != '\n');
+           
+        //    sscanf(line,"%f;%f;%f", &vertex.x,&vertex.y,&vertex.z);
+        //    printf("value of vertex %c", *line[2]);
+        //    array_free(line);
+        // } 
+     // if(ch == '\n'){
+        //   ignoreLine      = false;
+        //   readingVertices = false;
+        //   readingFaces    = false;
+
+        // }
+ 
+        // Checking if character is not EOF.
+        // If it is EOF stop eading.
