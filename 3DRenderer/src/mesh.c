@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <unistd.h>
+#include  <unistd.h>
 #include "array.h"
 #include "mesh.h"
 
@@ -65,7 +65,7 @@ void load_obj_file_data(char* filename){
         char data[50];
 
         fgets(data,50,file);
-        if(data[0] == 'v' && data[1] == ' '){
+        if(data[0] == 'v' ){
 
           vec3_t vertex;
 
@@ -73,16 +73,16 @@ void load_obj_file_data(char* filename){
           strtok(data," ");
           char* x =  strtok(NULL," ");
           vertex.x = atof(x);
-          // printf("vertex x: %s\n",x);
+          printf("vertex x: %s\n",x);
           char* y =  strtok(NULL," ");
           vertex.y = atof(y);
-          // printf("vertex y: %s\n",y);
+          printf("vertex y: %s\n",y);
           char* z =  strtok(NULL," ");
           vertex.z = atof(z);
 
-          // for printf("vertex z: %s\n", z);
+          printf("vertex z: %s\n", z);
           array_push(mesh.vertices,vertex);
-          // printf("the length of the array is: %d\n", array_length(mesh.vertices));
+          printf("the length of the array is: %d\n", array_length(mesh.vertices));
           
         }
         if(data[0] == 'f'){
@@ -97,7 +97,7 @@ void load_obj_file_data(char* filename){
             face.b = atoi(c2);
             face.c = atoi(c3);
             
-            // printf("Each face: %d %d %d\n", face.a,face.b,face.c);
+            printf("Each face: %d %d %d\n", face.a,face.b,face.c);
 
             array_push(mesh.faces,face);
 
@@ -110,6 +110,20 @@ void load_obj_file_data(char* filename){
     // Closing the file
     fclose(file);
 }
+
+// void load_obj_file_data2(char* filename){
+//   FILE *file;
+//   file = fopen(filename,"r");
+//   char line[1024];
+
+//   while(fgets(line,1024,file)){
+//       if(strcmp(line,"v",2) == 0){
+//         vec3_t vertex;
+//         scanf(line,"v %f %f %f", &vertex.x, &vertex.y, &vertex.z);
+//         array_push(mesh.vertices,vertex);
+//       }
+//   }
+// }
 
 
 

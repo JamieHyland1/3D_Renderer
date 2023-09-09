@@ -11,5 +11,6 @@
         "stdint.h": "c",
         "stdbool.h": "c",
         "stdio.h": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "enabled"
 }
