@@ -6,6 +6,7 @@
 #include "display.h"
 #include "vector.h"
 #include "mesh.h"
+#include <math.h>
 
 bool isRunning = false; 
 int fov_factor = 640;
@@ -33,7 +34,7 @@ bool setup(void){
     );
 
     
-    load_obj_file_data("./assets/cube.obj");
+    load_obj_file_data("./assets/skull.obj");
 
     if(!color_buffer){
         fprintf(stderr, "couldnt allocate memory for color buffer");
@@ -62,9 +63,9 @@ void update(void){
 
     triangles_to_render = NULL;
 
-    //  mesh.rotation.x += 0.01;
-     mesh.rotation.y += 0.01;
-    //  mesh.rotation.z += 0.01;
+    //mesh.rotation.x = M_PI/4;
+    mesh.rotation.y += 0.01;
+    //mesh.rotation.z += 0.01;
     int num_faces = array_length(mesh.faces);
     for(int i = 0; i < num_faces; i ++){
         
@@ -96,11 +97,11 @@ void update(void){
 
         vec3_t tri_normal = vec3_cross(v1,v2);
 
-        vec3_normalize(&tri_normal);
+        //vec3_normalize(&tri_normal);
 
         float orientation_from_camera = vec3_dot(cameraRay,tri_normal);
 
-        if(orientation_from_camera > 0){
+        if(orientation_from_camera >= 0){
             continue;
         }
         triangle_t projected_triangle;
@@ -156,17 +157,27 @@ void render(void){
     for(int i = 0; i < num_triangles; i ++){
         triangle_t tri = triangles_to_render[i];
        
-        //draw vertex points
-        drawRect(tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y, 1, 1, 0x000000);
-        drawRect(tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y, 1, 1, 0x000000);
-        drawRect(tri.points[2].x+camera_pos.x, tri.points[2].y+camera_pos.y, 1, 1, 0x000000);
+       // draw vertex points
+        // drawRect(tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y, 10, 10, 0x000000);
+        // drawRect(tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y, 10, 10, 0x000000);
+        // drawRect(tri.points[2].x+camera_pos.x, tri.points[2].y+camera_pos.y, 10, 10, 0x000000);
 
-        //draw face
-        draw_triangle(
+       //draw face
+        draw_filled_triangle(
             tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y,
             tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y,
             tri.points[2].x+camera_pos.x, tri.points[2].y+camera_pos.y
             ,0xFFFFFF);
+
+
+         draw_triangle(
+            tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y,
+            tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y,
+            tri.points[2].x+camera_pos.x, tri.points[2].y+camera_pos.y
+            ,0x000000);
+
+
+    //    / draw_filled_triangle(300,100,50,400,500,700,0xFFFFFF);
      
     }
     array_free(triangles_to_render);
