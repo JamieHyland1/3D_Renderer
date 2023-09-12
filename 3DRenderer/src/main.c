@@ -56,7 +56,7 @@ bool setup(void){
     );
 
     
-    load_obj_file_data("./assets/cube.obj");
+    load_obj_file_data("./assets/skull.obj");
 
     if(!color_buffer){
         fprintf(stderr, "couldnt allocate memory for color buffer");
@@ -124,7 +124,7 @@ void update(void){
 
         float orientation_from_camera = vec3_dot(cameraRay,tri_normal);
 
-        if(orientation_from_camera > 0 && cull_mode == CULL_BACKFACE){
+        if(orientation_from_camera < 0 && cull_mode == CULL_BACKFACE){
             continue;
         }
         triangle_t projected_triangle;
@@ -133,15 +133,29 @@ void update(void){
             transformed_vertices[j].z -= camera_pos.z;
             
             vec2_t projected_vertex = project(transformed_vertices[j]);
-
+            float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z)/3;
             //scale and translate to middle of screen
             projected_vertex.x += window_width/2;
             projected_vertex.y += window_height/2;
             
 
             projected_triangle.points[j] = projected_vertex; 
+            projected_triangle.avg_depth = avg_depth;
         }
         array_push(triangles_to_render,projected_triangle);
+
+        // Sort triangle in order of depth back to front
+        // TODO : add better sorting algorithm 
+        int num_triangles = array_length(triangles_to_render);
+        for(int i = 0; i < num_triangles; i ++){
+            for (int j = i+1; j < num_triangles; j ++){
+                if(triangles_to_render[j].avg_depth > triangles_to_render[i].avg_depth){
+                    triangle_t temp = triangles_to_render[i];
+                    triangles_to_render[i] = triangles_to_render[j];
+                    triangles_to_render[j] = temp;
+                }
+            }
+        }
     }
 }
 
@@ -171,7 +185,7 @@ void process_input(void){
 }
 
 void render(void){
-    draw_grid();
+    //draw_grid();
   
     render_color_buffer();
     
