@@ -6,12 +6,17 @@
 #include "display.h"
 #include "vector.h"
 #include "mesh.h"
+#include <math.h>
 
 bool isRunning = false; 
 int fov_factor = 640;
 int previous_frame_time = 0;
-
-vec3_t camera_pos = {0,3,-5};
+bool wireframe_mode_1 = true;
+bool wireframe_mode_2 = false;
+bool filled_mode_1 = false;
+bool filled_mode_2 = false;
+bool cull_backdface = true;
+vec3_t camera_pos = {0,0,-5};
 
 triangle_t*  triangles_to_render = NULL;
 
@@ -19,11 +24,29 @@ uint32_t col_lerp(uint32_t a, uint32_t b, float t){
     return (uint32_t)(a + t * (b-a));
 }
 
+
+enum cull_method{
+    CULL_NONE,
+    CULL_BACKFACE
+} cull_method;
+
+enum render_method{
+    RENDER_WIRE,
+    RENDER_WIRE_VERTEX,
+    RENDER_FILL_TRIANGLE,
+    RENDER_FILL_TRIANGLE_WIRE
+} render_method;
+
+
+enum render_method render_mode;
+enum cull_method cull_mode;
+
 bool setup(void){
+
+    cull_mode = CULL_BACKFACE;
+    render_mode = RENDER_WIRE;
     printf("Setting up Renderer\n");
     color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
-    // printf("Frame target time:\n");
-    // printf("%d\n", FRAME_TARGET_TIME);
     color_buffer_texture = SDL_CreateTexture(
         renderer,
         SDL_PIXELFORMAT_ARGB8888,
@@ -38,6 +61,7 @@ bool setup(void){
     if(!color_buffer){
         fprintf(stderr, "couldnt allocate memory for color buffer");
         return false;
+        
     }
 
     return true;
@@ -62,9 +86,9 @@ void update(void){
 
     triangles_to_render = NULL;
 
-    //  mesh.rotation.x += 0.01;
-     mesh.rotation.y += 0.01;
-    //  mesh.rotation.z += 0.01;
+    //mesh.rotation.x = M_PI/4;
+    mesh.rotation.y += 0.01;
+    //mesh.rotation.z += 0.01;
     int num_faces = array_length(mesh.faces);
     for(int i = 0; i < num_faces; i ++){
         
@@ -89,7 +113,7 @@ void update(void){
             transformed_vertices[j] = current_vertex;
         }
         //Cull back faces
-        vec3_t cameraRay = vec3_sub(transformed_vertices[0],camera_pos);
+        vec3_t cameraRay = vec3_sub(camera_pos,transformed_vertices[0]);
 
         vec3_t v1 = vec3_sub(transformed_vertices[1],transformed_vertices[0]);
         vec3_t v2 = vec3_sub(transformed_vertices[2],transformed_vertices[0]);
@@ -100,7 +124,7 @@ void update(void){
 
         float orientation_from_camera = vec3_dot(cameraRay,tri_normal);
 
-        if(orientation_from_camera > 0){
+        if(orientation_from_camera > 0 && cull_mode == CULL_BACKFACE){
             continue;
         }
         triangle_t projected_triangle;
@@ -134,39 +158,76 @@ void process_input(void){
                 isRunning = false;
             }
             else if(event.key.keysym.sym == SDLK_UP) fov_factor += 10;
-            else if(event.key.keysym.sym == SDLK_8) camera_pos.y += 1;
-            else if(event.key.keysym.sym == SDLK_2) camera_pos.y -= 1;
-            else if(event.key.keysym.sym == SDLK_4) camera_pos.x -= 1;
-            else if(event.key.keysym.sym == SDLK_6) camera_pos.x += 1;
             else if(event.key.keysym.sym == SDLK_DOWN) fov_factor -= 10;
+            else if(event.key.keysym.sym == SDLK_1)render_mode = RENDER_WIRE_VERTEX;
+            else if(event.key.keysym.sym == SDLK_2)render_mode = RENDER_WIRE;
+            else if(event.key.keysym.sym == SDLK_3)render_mode = RENDER_FILL_TRIANGLE;
+            else if(event.key.keysym.sym == SDLK_4)render_mode = RENDER_FILL_TRIANGLE_WIRE;
+            else if(event.key.keysym.sym == SDLK_c) cull_mode = CULL_BACKFACE;
+            else if(event.key.keysym.sym == SDLK_d) cull_mode = CULL_NONE;
+
             break;        
     }
 }
 
 void render(void){
-    //draw_grid();
+    draw_grid();
   
     render_color_buffer();
     
     uint32_t col = 0xFFAB07E0;
     uint32_t col2 = 0xFF359DFA;
-    //render_color_buffer();
+
     clear_color_buffer_gradient(col,col2);
     int num_triangles = array_length(triangles_to_render);
+    
+    // uint32_t colors[] = {0xfec0aa,0xec4e20,0x84732b,0x574f2a,0x1c3a13};
     for(int i = 0; i < num_triangles; i ++){
         triangle_t tri = triangles_to_render[i];
-       
-        //draw vertex points
-        drawRect(tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y, 1, 1, 0x000000);
-        drawRect(tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y, 1, 1, 0x000000);
-        drawRect(tri.points[2].x+camera_pos.x, tri.points[2].y+camera_pos.y, 1, 1, 0x000000);
-
-        //draw face
-        draw_triangle(
-            tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y,
-            tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y,
-            tri.points[2].x+camera_pos.x, tri.points[2].y+camera_pos.y
-            ,0xFFFFFF);
+        //Draw based on the render mode
+        switch(render_mode){
+            case RENDER_WIRE_VERTEX:
+                draw_triangle(
+                tri.points[0].x, tri.points[0].y, // vertex A
+                tri.points[1].x, tri.points[1].y, // vertex B
+                tri.points[2].x, tri.points[2].y, // vertex C
+                0x000000
+                );
+                drawRect(tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y, 5, 5, 0xFF0000);
+                drawRect(tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y, 5, 5, 0xFF0000);
+                drawRect(tri.points[2].x+camera_pos.x, tri.points[2].y+camera_pos.y, 5, 5, 0xFF0000);
+            break;
+            case RENDER_WIRE:
+                  draw_triangle(
+                    tri.points[0].x, tri.points[0].y, // vertex A
+                    tri.points[1].x, tri.points[1].y, // vertex B
+                    tri.points[2].x, tri.points[2].y, // vertex C
+                    0x000000
+                    );
+            break;
+            case RENDER_FILL_TRIANGLE:
+                  draw_filled_triangle(
+                    tri.points[0].x, tri.points[0].y, // vertex A
+                    tri.points[1].x, tri.points[1].y, // vertex B
+                    tri.points[2].x, tri.points[2].y, // vertex C
+                0xFFFFFF
+                );
+            break;
+            case RENDER_FILL_TRIANGLE_WIRE:
+                 draw_filled_triangle(
+            tri.points[0].x, tri.points[0].y, // vertex A
+            tri.points[1].x, tri.points[1].y, // vertex B
+            tri.points[2].x, tri.points[2].y, // vertex C
+            0xFFFFFF
+            ); 
+            draw_triangle(
+            tri.points[0].x, tri.points[0].y, // vertex A
+            tri.points[1].x, tri.points[1].y, // vertex B
+            tri.points[2].x, tri.points[2].y, // vertex C
+            0x000000
+            );
+            break; 
+        }
      
     }
     array_free(triangles_to_render);
