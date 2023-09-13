@@ -106,9 +106,7 @@ void update(void){
 
         for(int j = 0; j < 3; j++){
             vec3_t current_vertex = face_vertices[j];
-            current_vertex = vec3_rotate_x(current_vertex, mesh.rotation.x);
-            current_vertex = vec3_rotate_y(current_vertex, mesh.rotation.y);
-            current_vertex = vec3_rotate_z(current_vertex, mesh.rotation.z);
+            //TODO: Use a matrix to scale our vertex
 
             transformed_vertices[j] = current_vertex;
         }
