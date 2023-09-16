@@ -7,15 +7,11 @@
 #include "vector.h"
 #include "mesh.h"
 #include <math.h>
-
+#include "matrix.h"
 bool isRunning = false; 
 int fov_factor = 640;
 int previous_frame_time = 0;
-bool wireframe_mode_1 = true;
-bool wireframe_mode_2 = false;
-bool filled_mode_1 = false;
-bool filled_mode_2 = false;
-bool cull_backdface = true;
+
 vec3_t camera_pos = {0,0,-5};
 
 triangle_t*  triangles_to_render = NULL;
@@ -56,7 +52,7 @@ bool setup(void){
     );
 
     
-    load_obj_file_data("./assets/skull.obj");
+    load_obj_file_data("./assets/cube.obj");
 
     if(!color_buffer){
         fprintf(stderr, "couldnt allocate memory for color buffer");
@@ -86,9 +82,25 @@ void update(void){
 
     triangles_to_render = NULL;
 
-    //mesh.rotation.x = M_PI/4;
+    mesh.rotation.x += 0.1;
     mesh.rotation.y += 0.01;
-    //mesh.rotation.z += 0.01;
+    mesh.rotation.z += 0.01;
+
+    // mesh.scale.x += 0.01;
+    // mesh.scale.y += 0.02;
+    // mesh.scale.z += 0.003;
+
+    //mesh.translation.x += 0.01;
+    mesh.translation.z = -camera_pos.z;
+   
+
+    mat4_t scale_matrix =       mat4_make_scale(mesh.scale.x,mesh.scale.y,mesh.scale.z);
+    mat4_t translation_matrix = mat4_make_translation(mesh.translation.x,mesh.translation.y,mesh.translation.z);
+    
+    mat4_t rotation_matrix_x = mat4_rotate_x(mesh.rotation.x);
+    mat4_t rotation_matrix_y = mat4_rotate_y(mesh.rotation.y);
+    mat4_t rotation_matrix_z = mat4_rotate_z(mesh.rotation.z);
+
     int num_faces = array_length(mesh.faces);
     for(int i = 0; i < num_faces; i ++){
         
@@ -102,21 +114,30 @@ void update(void){
 
        
 
-        vec3_t transformed_vertices[3];
+        vec4_t transformed_vertices[3];
 
         for(int j = 0; j < 3; j++){
-            vec3_t current_vertex = face_vertices[j];
-            current_vertex = vec3_rotate_x(current_vertex, mesh.rotation.x);
-            current_vertex = vec3_rotate_y(current_vertex, mesh.rotation.y);
-            current_vertex = vec3_rotate_z(current_vertex, mesh.rotation.z);
+            vec4_t current_vertex = vec4_from_vec3(face_vertices[j]);
 
-            transformed_vertices[j] = current_vertex;
+            // Create a world matrix
+            mat4_t world_matrix = mat4_identity();
+
+            // Multiply Scale -> Rotation -> Translation ORDER MATTERS >:(
+            world_matrix = matrix_mult_mat4(scale_matrix,world_matrix);
+            
+            world_matrix = matrix_mult_mat4(rotation_matrix_x,world_matrix);
+            world_matrix = matrix_mult_mat4(rotation_matrix_y,world_matrix);
+            world_matrix = matrix_mult_mat4(rotation_matrix_z,world_matrix);
+                        
+            world_matrix = matrix_mult_mat4(translation_matrix,world_matrix);
+           
+            transformed_vertices[j] = matrix_mult_vec4(world_matrix,current_vertex);
         }
         //Cull back faces
-        vec3_t cameraRay = vec3_sub(camera_pos,transformed_vertices[0]);
+        vec3_t cameraRay = vec3_sub(camera_pos,vec3_from_vec4(transformed_vertices[0]));
 
-        vec3_t v1 = vec3_sub(transformed_vertices[1],transformed_vertices[0]);
-        vec3_t v2 = vec3_sub(transformed_vertices[2],transformed_vertices[0]);
+        vec3_t v1 = vec3_sub(vec3_from_vec4(transformed_vertices[1]),vec3_from_vec4(transformed_vertices[0]));
+        vec3_t v2 = vec3_sub(vec3_from_vec4(transformed_vertices[2]),vec3_from_vec4(transformed_vertices[0]));
 
         vec3_t tri_normal = vec3_cross(v1,v2);
 
@@ -130,9 +151,9 @@ void update(void){
         triangle_t projected_triangle;
 
         for(int j = 0; j < 3; j++){
-            transformed_vertices[j].z -= camera_pos.z;
+           
             
-            vec2_t projected_vertex = project(transformed_vertices[j]);
+            vec2_t projected_vertex = project(vec3_from_vec4(transformed_vertices[j]));
             float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z)/3;
             //scale and translate to middle of screen
             projected_vertex.x += window_width/2;
