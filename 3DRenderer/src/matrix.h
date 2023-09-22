@@ -18,4 +18,13 @@ vec4_t matrix_mult_vec4(mat4_t m, vec4_t v);
 mat4_t mat4_rotate_z(float angle);
 mat4_t mat4_rotate_x(float angle);
 mat4_t mat4_rotate_y(float angle);
+
+
+
+//////////////
+//Projections
+//////////////
+mat4_t mat4_make_perspective(float fov, float aspect, float znear, float zfar);
+vec4_t mat4_mul_vec4_project(mat4_t proj, vec4_t v);
+
 #endif

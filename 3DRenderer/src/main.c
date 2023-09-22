@@ -9,10 +9,10 @@
 #include <math.h>
 #include "matrix.h"
 bool isRunning = false; 
-int fov_factor = 640;
+mat4_t projection_matrix;
 int previous_frame_time = 0;
 
-vec3_t camera_pos = {0,0,-5};
+vec3_t camera_pos = {0,0,0};
 
 triangle_t*  triangles_to_render = NULL;
 
@@ -51,6 +51,13 @@ bool setup(void){
         window_height
     );
 
+
+    //Initialize projection matrix
+    float fov = M_PI / 3.0;
+    float aspect = (float)window_height/(float)window_width;
+    float znear = 0.1;
+    float zfar = 100.0;
+    projection_matrix = mat4_make_perspective(fov, aspect, znear, zfar);
     
     load_obj_file_data("./assets/cube.obj");
 
@@ -60,16 +67,11 @@ bool setup(void){
         
     }
 
+
     return true;
 }
 
-vec2_t project(vec3_t v){
-    vec2_t projected = {
-        .x = (v.x * fov_factor)/v.z,
-        .y = (v.y * fov_factor)/v.z
-    };
-    return projected;
-}
+
 
 void update(void){
     int time_to_wait = FRAME_TARGET_TIME - (SDL_GetTicks()-previous_frame_time);
@@ -148,21 +150,41 @@ void update(void){
         if(orientation_from_camera < 0 && cull_mode == CULL_BACKFACE){
             continue;
         }
-        triangle_t projected_triangle;
+        ;
+
+        vec4_t projected_points[3];
 
         for(int j = 0; j < 3; j++){
            
             
-            vec2_t projected_vertex = project(vec3_from_vec4(transformed_vertices[j]));
+            projected_points[j] = mat4_mul_vec4_project(projection_matrix,transformed_vertices[j]);
             float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z)/3;
-            //scale and translate to middle of screen
-            projected_vertex.x += window_width/2;
-            projected_vertex.y += window_height/2;
             
+             //Scale to middle of screen
+            projected_points[j].x *= window_width/2.0;
+            projected_points[j].y *= window_height/2.0;
+            
+            //Translate to middle of screen
+            projected_points[j].x += window_width/2.0;
+            projected_points[j].y += window_height/2.0;
+           
+            
+           
 
-            projected_triangle.points[j] = projected_vertex; 
-            projected_triangle.avg_depth = avg_depth;
+            // projected_triangle.points[j] = projected_points[j]; 
+            // projected_triangle.avg_depth = projected_points[j].z;
         }
+        float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;
+        triangle_t projected_triangle = {
+            .points = {
+                { projected_points[0].x, projected_points[0].y },
+                { projected_points[1].x, projected_points[1].y },
+                { projected_points[2].x, projected_points[2].y },
+            },
+            .avg_depth = avg_depth
+            };
+
+
         array_push(triangles_to_render,projected_triangle);
 
         // Sort triangle in order of depth back to front
@@ -192,8 +214,8 @@ void process_input(void){
             if(event.key.keysym.sym == SDLK_ESCAPE){
                 isRunning = false;
             }
-            else if(event.key.keysym.sym == SDLK_UP) fov_factor += 10;
-            else if(event.key.keysym.sym == SDLK_DOWN) fov_factor -= 10;
+            else if(event.key.keysym.sym == SDLK_UP) camera_pos.z += 10;
+            else if(event.key.keysym.sym == SDLK_DOWN) camera_pos.z -= 10;
             else if(event.key.keysym.sym == SDLK_1)render_mode = RENDER_WIRE_VERTEX;
             else if(event.key.keysym.sym == SDLK_2)render_mode = RENDER_WIRE;
             else if(event.key.keysym.sym == SDLK_3)render_mode = RENDER_FILL_TRIANGLE;
