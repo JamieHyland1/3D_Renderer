@@ -6,13 +6,16 @@
 #include "display.h"
 #include "vector.h"
 #include "mesh.h"
+#include "light.h"
 #include <math.h>
 #include "matrix.h"
+
+
 bool isRunning = false; 
 mat4_t projection_matrix;
 int previous_frame_time = 0;
 
-vec3_t camera_pos = {0,0,0};
+vec3_t camera_pos = {0,0,10};
 
 triangle_t*  triangles_to_render = NULL;
 
@@ -20,6 +23,7 @@ uint32_t col_lerp(uint32_t a, uint32_t b, float t){
     return (uint32_t)(a + t * (b-a));
 }
 
+light_t main_light = {.direction = {0.25,-1,0}};
 
 enum cull_method{
     CULL_NONE,
@@ -59,7 +63,7 @@ bool setup(void){
     float zfar = 100.0;
     projection_matrix = mat4_make_perspective(fov, aspect, znear, zfar);
     
-    load_obj_file_data("./assets/cube.obj");
+    load_obj_file_data("./assets/Sphere.obj");
 
     if(!color_buffer){
         fprintf(stderr, "couldnt allocate memory for color buffer");
@@ -84,15 +88,9 @@ void update(void){
 
     triangles_to_render = NULL;
 
-    mesh.rotation.x += 0.1;
     mesh.rotation.y += 0.01;
-    mesh.rotation.z += 0.01;
+    
 
-    // mesh.scale.x += 0.01;
-    // mesh.scale.y += 0.02;
-    // mesh.scale.z += 0.003;
-
-    //mesh.translation.x += 0.01;
     mesh.translation.z = -camera_pos.z;
    
 
@@ -114,6 +112,7 @@ void update(void){
         face_vertices[1] = mesh.vertices[current_face.b - 1];
         face_vertices[2] = mesh.vertices[current_face.c - 1];
 
+        
        
 
         vec4_t transformed_vertices[3];
@@ -130,11 +129,14 @@ void update(void){
             world_matrix = matrix_mult_mat4(rotation_matrix_x,world_matrix);
             world_matrix = matrix_mult_mat4(rotation_matrix_y,world_matrix);
             world_matrix = matrix_mult_mat4(rotation_matrix_z,world_matrix);
-                        
+
             world_matrix = matrix_mult_mat4(translation_matrix,world_matrix);
            
             transformed_vertices[j] = matrix_mult_vec4(world_matrix,current_vertex);
+            
         }
+
+
         //Cull back faces
         vec3_t cameraRay = vec3_sub(camera_pos,vec3_from_vec4(transformed_vertices[0]));
 
@@ -143,45 +145,52 @@ void update(void){
 
         vec3_t tri_normal = vec3_cross(v1,v2);
 
-        vec3_normalize(&tri_normal);
 
+        vec3_normalize(&tri_normal);
+        vec3_normalize(&main_light.direction);
+
+
+        float orientation_from_light = vec3_dot(main_light.direction, tri_normal);
+
+        orientation_from_light = orientation_from_light < 0.15 ? 0.15 : orientation_from_light;
+        orientation_from_light = orientation_from_light > 1.00 ? 1.00 : orientation_from_light;
+        
+        uint32_t triangle_color = light_apply_intensity(0xFFFFFF,orientation_from_light);
         float orientation_from_camera = vec3_dot(cameraRay,tri_normal);
 
         if(orientation_from_camera < 0 && cull_mode == CULL_BACKFACE){
             continue;
         }
-        ;
+        
 
         vec4_t projected_points[3];
 
         for(int j = 0; j < 3; j++){
-           
-            
             projected_points[j] = mat4_mul_vec4_project(projection_matrix,transformed_vertices[j]);
-            float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z)/3;
+            
             
              //Scale to middle of screen
             projected_points[j].x *= window_width/2.0;
             projected_points[j].y *= window_height/2.0;
             
+
+            //Invert Y values to account for flipped y screen coordinate
+            projected_points[j].y *= -1;
+
             //Translate to middle of screen
             projected_points[j].x += window_width/2.0;
             projected_points[j].y += window_height/2.0;
            
-            
-           
-
-            // projected_triangle.points[j] = projected_points[j]; 
-            // projected_triangle.avg_depth = projected_points[j].z;
         }
-        float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;
+        
         triangle_t projected_triangle = {
             .points = {
                 { projected_points[0].x, projected_points[0].y },
                 { projected_points[1].x, projected_points[1].y },
                 { projected_points[2].x, projected_points[2].y },
             },
-            .avg_depth = avg_depth
+            .avg_depth = ((transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0),
+            .color = triangle_color
             };
 
 
@@ -214,8 +223,8 @@ void process_input(void){
             if(event.key.keysym.sym == SDLK_ESCAPE){
                 isRunning = false;
             }
-            else if(event.key.keysym.sym == SDLK_UP) camera_pos.z += 10;
-            else if(event.key.keysym.sym == SDLK_DOWN) camera_pos.z -= 10;
+            else if(event.key.keysym.sym == SDLK_UP) camera_pos.z += 2.0;
+            else if(event.key.keysym.sym == SDLK_DOWN) camera_pos.z -= 2.0;
             else if(event.key.keysym.sym == SDLK_1)render_mode = RENDER_WIRE_VERTEX;
             else if(event.key.keysym.sym == SDLK_2)render_mode = RENDER_WIRE;
             else if(event.key.keysym.sym == SDLK_3)render_mode = RENDER_FILL_TRIANGLE;
@@ -228,17 +237,15 @@ void process_input(void){
 }
 
 void render(void){
-    //draw_grid();
-  
+   
     render_color_buffer();
-    
-    uint32_t col = 0xFFAB07E0;
-    uint32_t col2 = 0xFF359DFA;
+    uint32_t col = 0xFFFFFF;
 
-    clear_color_buffer_gradient(col,col2);
+    clear_color_buffer_gradient(col,col);
+     draw_grid(10,40);
     int num_triangles = array_length(triangles_to_render);
     
-    // uint32_t colors[] = {0xfec0aa,0xec4e20,0x84732b,0x574f2a,0x1c3a13};
+   
     for(int i = 0; i < num_triangles; i ++){
         triangle_t tri = triangles_to_render[i];
         //Draw based on the render mode
@@ -267,7 +274,7 @@ void render(void){
                     tri.points[0].x, tri.points[0].y, // vertex A
                     tri.points[1].x, tri.points[1].y, // vertex B
                     tri.points[2].x, tri.points[2].y, // vertex C
-                0xFFFFFF
+                tri.color
                 );
             break;
             case RENDER_FILL_TRIANGLE_WIRE:
@@ -275,7 +282,7 @@ void render(void){
             tri.points[0].x, tri.points[0].y, // vertex A
             tri.points[1].x, tri.points[1].y, // vertex B
             tri.points[2].x, tri.points[2].y, // vertex C
-            0xFFFFFF
+            tri.color
             ); 
             draw_triangle(
             tri.points[0].x, tri.points[0].y, // vertex A
@@ -288,7 +295,6 @@ void render(void){
      
     }
     array_free(triangles_to_render);
-  //  draw_grid();
     SDL_RenderPresent(renderer);
 }
 
@@ -296,6 +302,7 @@ void render(void){
 void free_resources(void){
     free(color_buffer);
     array_free(mesh.faces);
+    array_free(mesh.face_normals);
     array_free(mesh.vertices);
 
 }
@@ -315,7 +322,3 @@ int main(int argc, char* args[]){
     free_resources();
     return 0;
 }
-
-
-
-// int main(int argc, char* args[]){
