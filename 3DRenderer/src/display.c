@@ -110,11 +110,22 @@ void drawRect(int x, int y, int w, int h, uint32_t color){
     }
 }
 
-void draw_grid(void){
+void draw_boxed_grid(void){
     for(int y = 0; y < window_height; y++){
         for(int x = 0; x < window_width; x++){
             int index = (window_width * y) + x;
-            if(x%40 == 0  || y%40 == 0)color_buffer[index] = 0xFFFFFFFF;
+            if(x%40 == 0  || y%40 == 0)color_buffer[index] = 0x000;
+        }
+    }
+}
+
+void draw_grid(int xPlot, int rowSize){
+    for(int y = 0; y < window_height; y+=10){
+        for(int x = 0; x < window_width; x++){
+            int index = (window_width * y) + x;
+            if(x%10 == 0){
+                color_buffer[index] = 0x000;
+            }
         }
     }
 }
