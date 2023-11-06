@@ -9,6 +9,8 @@
 #include "light.h"
 #include <math.h>
 #include "matrix.h"
+#include "texture.h"
+#include "triangle.h"
 
 
 bool isRunning = false; 
@@ -34,7 +36,9 @@ enum render_method{
     RENDER_WIRE,
     RENDER_WIRE_VERTEX,
     RENDER_FILL_TRIANGLE,
-    RENDER_FILL_TRIANGLE_WIRE
+    RENDER_FILL_TRIANGLE_WIRE,
+    RENDER_TEXTURED,
+    RENDER_TEXTURED_WIRE
 } render_method;
 
 
@@ -42,7 +46,6 @@ enum render_method render_mode;
 enum cull_method cull_mode;
 
 bool setup(void){
-
     cull_mode = CULL_BACKFACE;
     render_mode = RENDER_WIRE;
     printf("Setting up Renderer\n");
@@ -62,8 +65,11 @@ bool setup(void){
     float znear = 0.1;
     float zfar = 100.0;
     projection_matrix = mat4_make_perspective(fov, aspect, znear, zfar);
-    
-    load_obj_file_data("./assets/Sphere.obj");
+
+    mesh_texture = (uint32_t*)REDBRICK_TEXTURE;
+
+    load_cube_mesh_data();
+    //load_obj_file_data("./assets/cube.obj");
 
     if(!color_buffer){
         fprintf(stderr, "couldnt allocate memory for color buffer");
@@ -190,6 +196,11 @@ void update(void){
                 { projected_points[2].x, projected_points[2].y },
             },
             .avg_depth = ((transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0),
+            .texcoords = {
+                {current_face.a_uv.u, current_face.a_uv.v},
+                {current_face.b_uv.u, current_face.b_uv.v},
+                {current_face.c_uv.u, current_face.c_uv.v}
+            },
             .color = triangle_color
             };
 
@@ -229,9 +240,10 @@ void process_input(void){
             else if(event.key.keysym.sym == SDLK_2)render_mode = RENDER_WIRE;
             else if(event.key.keysym.sym == SDLK_3)render_mode = RENDER_FILL_TRIANGLE;
             else if(event.key.keysym.sym == SDLK_4)render_mode = RENDER_FILL_TRIANGLE_WIRE;
+            else if(event.key.keysym.sym == SDLK_5)render_mode = RENDER_TEXTURED;
+            else if(event.key.keysym.sym == SDLK_6)render_mode = RENDER_TEXTURED_WIRE;
             else if(event.key.keysym.sym == SDLK_c) cull_mode = CULL_BACKFACE;
             else if(event.key.keysym.sym == SDLK_d) cull_mode = CULL_NONE;
-
             break;        
     }
 }
@@ -290,7 +302,18 @@ void render(void){
             tri.points[2].x, tri.points[2].y, // vertex C
             0x000000
             );
-            break; 
+            break;
+            case RENDER_TEXTURED:
+            draw_textured_triangle(
+                tri.points[0].x, tri.points[0].y, tri.texcoords[0].u, tri.texcoords[0].v, // vertex A
+                tri.points[1].x, tri.points[1].y, tri.texcoords[1].u, tri.texcoords[1].v, // vertex B
+                tri.points[2].x, tri.points[2].y, tri.texcoords[2].u, tri.texcoords[2].v,  // vertex C
+                NULL
+            );
+            break;
+            case RENDER_TEXTURED_WIRE:
+            
+            break;
         }
      
     }

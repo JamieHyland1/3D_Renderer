@@ -1,6 +1,7 @@
 #include "triangle.h"
 #include "display.h"
 #include <math.h>
+#include "swap.h"
 
 void fill_flat_bottom_triangle(int x0,int y0, int x1, int y1, int x2, int y2, uint32_t color){
   
@@ -40,11 +41,6 @@ void fill_flat_top_triangle(int x0,int y0, int x1, int y1, int x2, int y2, uint3
     }
 
 }
-void int_swap(int* a, int* b){
-    int temp = *a;
-    *a = *b;
-    *b = temp;
-}
 
 
 void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2,int y2, uint32_t color){
@@ -71,6 +67,48 @@ void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2,int y2, uint32_
         int Mx = ( ( (float)(x2-x0)*(y1-y0) ) /(float) (y2-y0) ) + x0;
 
         fill_flat_bottom_triangle(x0,y0,x1,y1,Mx,My,color);
-        fill_flat_top_triangle(x1,y1,Mx,My,x2,y2,color);
+        //fill_flat_top_triangle(x1,y1,Mx,My,x2,y2,color);
+    }
+}
+
+void draw_textured_triangle(
+    int x0, int y0, float u0, float v0,
+    int x1, int y1, float u1, float v1,
+    int x2, int y2, float u2, float v2,
+    uint32_t* texture
+){
+    // We need to sort the vertices by the y coordinate first Ascending
+     if(y0 > y1){
+        int_swap(&y0,&y1);
+        int_swap(&x0,&x1);
+        float_swap(&u0,&u1);
+        float_swap(&v0,&v1);
+    }
+    if(y1 > y2){
+        int_swap(&y1,&y2);
+        int_swap(&x1,&x2);
+        float_swap(&u1,&u2);
+        float_swap(&v1,&v2);
+    }
+    if ( y0 > y1){
+        int_swap(&y0,&y1);
+        int_swap(&x0,&x1);
+        float_swap(&u0,&u1);
+        float_swap(&v0,&v1);
+    }
+
+    // Loop through the upper part of the triangle (flat-bottom)
+    ////////////////////////////////////////////////////////////
+    float inv_slope1;
+    float inv_slope2;
+    if(y1-y0 != 0) inv_slope1 = (float)((x1-x0)/abs(y1-y0));
+    if(y2-y0 != 0) inv_slope2 = (float)((x2-x0)/abs(y2-y0));
+
+    for(int y = y0; y <= y1; y++){
+        float x_start = x1 + (y-y1) * inv_slope1;
+        float x_end = x0 + (y-y0) * inv_slope2;
+        for(int x = x_start; x <= x_end; x++ ){
+            drawPixel(x,y,0xFFFF00FF);
+        }
     }
 }

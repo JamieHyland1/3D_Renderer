@@ -123,9 +123,9 @@ vec3_t vec3_rotate_x(vec3_t v, float angle) {
 
 vec3_t vec3_rotate_y(vec3_t v, float angle) {
     vec3_t rotated_vector = {
-        .x = v.x * cos(angle) - v.z * sin(angle),
+        .x = v.x * cos(angle) + v.z * sin(angle),
         .y = v.y,
-        .z = v.x * sin(angle) + v.z * cos(angle)
+        .z = -v.x * sin(angle) + v.z * cos(angle)
     };
     return rotated_vector;
 }
@@ -140,20 +140,19 @@ vec3_t vec3_rotate_z(vec3_t v, float angle) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Implementations of Vector 4D functions
+// Implementations of Vector conversion functions
 ///////////////////////////////////////////////////////////////////////////////
-vec4_t vec4_from_vec3(vec3_t v){
-    vec4_t result = {
-        .x = v.x,
-        .y = v.y,
-        .z = v.z,
-        .w = 1.0
-    };
+vec4_t vec4_from_vec3(vec3_t v) {
+    vec4_t result = { v.x, v.y, v.z, 1.0 };
     return result;
 }
 
-vec3_t vec3_from_vec4(vec4_t v){
-    vec3_t result = {v.x,v.y,v.z};
+vec3_t vec3_from_vec4(vec4_t v) {
+    vec3_t result = { v.x, v.y, v.z };
+    return result;
+}
 
+vec2_t vec2_from_vec4(vec4_t v) {
+    vec2_t result = { v.x, v.y };
     return result;
 }
