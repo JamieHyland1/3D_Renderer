@@ -124,7 +124,7 @@ void draw_grid(int xPlot, int rowSize){
         for(int x = 0; x < window_width; x++){
             int index = (window_width * y) + x;
             if(x%10 == 0){
-                color_buffer[index] = 0x000;
+                color_buffer[index] = 0xffffff;
             }
         }
     }

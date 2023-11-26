@@ -25,7 +25,7 @@ uint32_t col_lerp(uint32_t a, uint32_t b, float t){
     return (uint32_t)(a + t * (b-a));
 }
 
-light_t main_light = {.direction = {0.25,-1,0}};
+light_t main_light = {.direction = {0,0,1}};
 
 enum cull_method{
     CULL_NONE,
@@ -94,10 +94,11 @@ void update(void){
 
     triangles_to_render = NULL;
 
-    mesh.rotation.y += 0.01;
+    mesh.rotation.x += 0.005;
+    mesh.translation.z = 5;
     
 
-    mesh.translation.z = -camera_pos.z;
+    //mesh.translation.z = -camera_pos.z;
    
 
     mat4_t scale_matrix =       mat4_make_scale(mesh.scale.x,mesh.scale.y,mesh.scale.z);
@@ -144,29 +145,50 @@ void update(void){
 
 
         //Cull back faces
-        vec3_t cameraRay = vec3_sub(camera_pos,vec3_from_vec4(transformed_vertices[0]));
+        // vec3_t cameraRay = vec3_sub(camera_pos,vec3_from_vec4(transformed_vertices[0]));
 
-        vec3_t v1 = vec3_sub(vec3_from_vec4(transformed_vertices[1]),vec3_from_vec4(transformed_vertices[0]));
-        vec3_t v2 = vec3_sub(vec3_from_vec4(transformed_vertices[2]),vec3_from_vec4(transformed_vertices[0]));
+        // vec3_t v1 = vec3_sub(vec3_from_vec4(transformed_vertices[1]),vec3_from_vec4(transformed_vertices[0]));
+        // vec3_t v2 = vec3_sub(vec3_from_vec4(transformed_vertices[2]),vec3_from_vec4(transformed_vertices[0]));
 
-        vec3_t tri_normal = vec3_cross(v1,v2);
-
-
-        vec3_normalize(&tri_normal);
-        vec3_normalize(&main_light.direction);
+        // vec3_t tri_normal = vec3_cross(v1,v2);
 
 
-        float orientation_from_light = vec3_dot(main_light.direction, tri_normal);
+        // vec3_normalize(&tri_normal);
+        // vec3_normalize(&main_light.direction);
 
-        orientation_from_light = orientation_from_light < 0.15 ? 0.15 : orientation_from_light;
-        orientation_from_light = orientation_from_light > 1.00 ? 1.00 : orientation_from_light;
+
+       
         
-        uint32_t triangle_color = light_apply_intensity(0xFFFFFF,orientation_from_light);
-        float orientation_from_camera = vec3_dot(cameraRay,tri_normal);
 
+        vec3_t vector_a = vec3_from_vec4(transformed_vertices[0]); /*   A   */
+        vec3_t vector_b = vec3_from_vec4(transformed_vertices[1]); /*  / \  */
+        vec3_t vector_c = vec3_from_vec4(transformed_vertices[2]); /* C---B */
+
+        vec3_t vector_ab = vec3_sub(vector_b, vector_a);
+        vec3_t vector_ac = vec3_sub(vector_c, vector_a);
+        vec3_normalize(&vector_ab);
+        vec3_normalize(&vector_ac);
+
+        vec3_t normal = vec3_cross(vector_ab, vector_ac);
+        vec3_normalize(&normal);
+
+        vec3_t camera_ray = vec3_sub(camera_pos, vector_a);
+
+        float orientation_from_camera = vec3_dot(normal,camera_ray);
+       
         if(orientation_from_camera < 0 && cull_mode == CULL_BACKFACE){
             continue;
         }
+
+
+
+         float orientation_from_light = -vec3_dot(main_light.direction, normal);
+        uint32_t triangle_color = light_apply_intensity(0xFFFFFF,orientation_from_light);
+        orientation_from_light = orientation_from_light < 0.15 ? 0.15 : orientation_from_light;
+        orientation_from_light = orientation_from_light > 1.00 ? 1.00 : orientation_from_light;
+        
+
+
         
 
         vec4_t projected_points[3];
@@ -251,7 +273,7 @@ void process_input(void){
 void render(void){
    
     render_color_buffer();
-    uint32_t col = 0xFFFFFF;
+    uint32_t col = 0x000000;
 
     clear_color_buffer_gradient(col,col);
      draw_grid(10,40);
@@ -267,7 +289,7 @@ void render(void){
                 tri.points[0].x, tri.points[0].y, // vertex A
                 tri.points[1].x, tri.points[1].y, // vertex B
                 tri.points[2].x, tri.points[2].y, // vertex C
-                0x000000
+                0xFFFFFF
                 );
                 drawRect(tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y, 5, 5, 0xFF0000);
                 drawRect(tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y, 5, 5, 0xFF0000);
@@ -278,7 +300,7 @@ void render(void){
                     tri.points[0].x, tri.points[0].y, // vertex A
                     tri.points[1].x, tri.points[1].y, // vertex B
                     tri.points[2].x, tri.points[2].y, // vertex C
-                    0x000000
+                    0xFFFFFF
                     );
             break;
             case RENDER_FILL_TRIANGLE:
@@ -300,7 +322,7 @@ void render(void){
             tri.points[0].x, tri.points[0].y, // vertex A
             tri.points[1].x, tri.points[1].y, // vertex B
             tri.points[2].x, tri.points[2].y, // vertex C
-            0x000000
+            0xFFFFFF
             );
             break;
             case RENDER_TEXTURED:
