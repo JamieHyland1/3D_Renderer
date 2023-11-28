@@ -30,4 +30,7 @@ void draw_textured_triangle(
     int x2, int y2, float u2, float v2,
     uint32_t* texture
 );
+
+vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p);
+void draw_texel(int x, int y,vec2_t point_a, vec2_t point_b, vec2_t point_c, float u0, float u1, float v0, float v1, float u2, float v2, uint32_t* texture);
 #endif
