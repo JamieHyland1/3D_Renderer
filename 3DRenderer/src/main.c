@@ -105,6 +105,7 @@ void update(void){
     triangles_to_render = NULL;
 
     mesh.rotation.x += 0.005;
+    mesh.rotation.y -= 0.005;
     mesh.translation.z = 5;
     
 
@@ -168,22 +169,6 @@ void update(void){
 
 
        
-        
-
-        // vec3_t vector_a = vec3_from_vec4(transformed_vertices[0]); /*   A   */
-        // vec3_t vector_b = vec3_from_vec4(transformed_vertices[1]); /*  / \  */
-        // vec3_t vector_c = vec3_from_vec4(transformed_vertices[2]); /* C---B */
-
-        // vec3_t vector_ab = vec3_sub(vector_b, vector_a);
-        // vec3_t vector_ac = vec3_sub(vector_c, vector_a);
-        // vec3_normalize(&vector_ab);
-        // vec3_normalize(&vector_ac);
-
-        // vec3_t normal = vec3_cross(vector_ab, vector_ac);
-        // vec3_normalize(&normal);
-
-        // vec3_t camera_ray = vec3_sub(camera_pos, vector_a);
-
         float orientation_from_camera = vec3_dot(tri_normal,cameraRay);
       // printf("orientation from camera: %f", orientation_from_camera);
         if(cull_mode == CULL_BACKFACE){
@@ -225,9 +210,9 @@ void update(void){
         
         triangle_t projected_triangle = {
             .points = {
-                { projected_points[0].x, projected_points[0].y },
-                { projected_points[1].x, projected_points[1].y },
-                { projected_points[2].x, projected_points[2].y },
+                { projected_points[0].x, projected_points[0].y, projected_points[0].z, projected_points[0].w },
+                { projected_points[1].x, projected_points[1].y, projected_points[1].z, projected_points[1].w },
+                { projected_points[2].x, projected_points[2].y, projected_points[2].z, projected_points[2].w },
             },
             .avg_depth = ((transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0),
             .texcoords = {
@@ -339,17 +324,17 @@ void render(void){
             break;
             case RENDER_TEXTURED:
             draw_textured_triangle(
-                tri.points[0].x, tri.points[0].y, tri.texcoords[0].u, tri.texcoords[0].v, // vertex A
-                tri.points[1].x, tri.points[1].y, tri.texcoords[1].u, tri.texcoords[1].v, // vertex B
-                tri.points[2].x, tri.points[2].y, tri.texcoords[2].u, tri.texcoords[2].v,  // vertex C
+                tri.points[0].x, tri.points[0].y, tri.points[0].z ,tri.points[0].w, tri.texcoords[0].u, tri.texcoords[0].v, // vertex A
+                tri.points[1].x, tri.points[1].y, tri.points[1].z ,tri.points[1].w, tri.texcoords[1].u, tri.texcoords[1].v, // vertex B
+                tri.points[2].x, tri.points[2].y, tri.points[2].z ,tri.points[2].w, tri.texcoords[2].u, tri.texcoords[2].v,  // vertex C
                 mesh_texture
             );
             break;
             case RENDER_TEXTURED_WIRE:
-            draw_textured_triangle(
-                tri.points[0].x, tri.points[0].y, tri.texcoords[0].u, tri.texcoords[0].v, // vertex A
-                tri.points[1].x, tri.points[1].y, tri.texcoords[1].u, tri.texcoords[1].v, // vertex B
-                tri.points[2].x, tri.points[2].y, tri.texcoords[2].u, tri.texcoords[2].v,  // vertex C
+             draw_textured_triangle(
+                tri.points[0].x, tri.points[0].y, tri.points[0].z ,tri.points[0].w, tri.texcoords[0].u, tri.texcoords[0].v, // vertex A
+                tri.points[1].x, tri.points[1].y, tri.points[1].z ,tri.points[1].w, tri.texcoords[1].u, tri.texcoords[1].v, // vertex B
+                tri.points[2].x, tri.points[2].y, tri.points[2].z ,tri.points[2].w, tri.texcoords[2].u, tri.texcoords[2].v,  // vertex C
                 mesh_texture
             );
              draw_triangle(
