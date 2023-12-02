@@ -60,4 +60,5 @@ float vec3_dot(vec3_t a, vec3_t b);
 /// Vector 4D functions 
 /////////////////////////
 vec4_t vec4_from_vec3(vec3_t v);
+vec2_t vec2_from_vec4(vec4_t v);
 #endif
