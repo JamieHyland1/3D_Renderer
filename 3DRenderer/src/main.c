@@ -41,15 +41,14 @@ enum render_method{
     RENDER_TEXTURED_WIRE
 } render_method;
 
-
+uint32_t t;
 enum render_method render_mode;
 enum cull_method cull_mode;
 
 bool setup(void){
     cull_mode = CULL_BACKFACE;
     render_mode = RENDER_WIRE;
-    
-     mesh_texture = (uint32_t*) REDBRICK_TEXTURE;
+     
     printf("Setting up Renderer\n");
     color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
     color_buffer_texture = SDL_CreateTexture(
@@ -59,7 +58,7 @@ bool setup(void){
         window_width,
         window_height
     );
-
+    
 
     //Initialize projection matrix
     float fov = M_PI / 3.0;
@@ -67,9 +66,6 @@ bool setup(void){
     float znear = 0.1;
     float zfar = 100.0;
     projection_matrix = mat4_make_perspective(fov, aspect, znear, zfar);
-
-
-     
 
     load_cube_mesh_data();
     //load_obj_file_data("./assets/cube.obj");
@@ -79,6 +75,17 @@ bool setup(void){
         return false;
         
     }
+   printf("value of length: %d", redbrick_uint32_length);
+   //mesh_texture = (uint32_t*)REDBRICK_TEXTURE;
+//    for(size_t i = 0; i < redbrick_uint32_length; ++i ){
+//     size_t uint8_index = i * 4;
+//     uint32_t current_color;
+//     current_color = REDBRICK_TEXTURE[uint8_index] | REDBRICK_TEXTURE[uint8_index + 1] << 8 | REDBRICK_TEXTURE[uint8_index + 2] << 16 | REDBRICK_TEXTURE[uint8_index+3] << 24;
+//     mesh_texture[i] = current_color; 
+//    // printf("current colour: 0x%X\n", current_color);
+//    } 
+
+mesh_texture = (uint32_t*) REDBRICK_TEXTURE;
 
 
     return true;
@@ -313,7 +320,7 @@ void render(void){
                     tri.points[0].x, tri.points[0].y, // vertex A
                     tri.points[1].x, tri.points[1].y, // vertex B
                     tri.points[2].x, tri.points[2].y, // vertex C
-                mesh_texture[1]
+                0xFFFFFF
                 );
             break;
             case RENDER_FILL_TRIANGLE_WIRE:
@@ -321,7 +328,7 @@ void render(void){
             tri.points[0].x, tri.points[0].y, // vertex A
             tri.points[1].x, tri.points[1].y, // vertex B
             tri.points[2].x, tri.points[2].y, // vertex C
-            0x38
+            0xFFFFFF
             ); 
             draw_triangle(
             tri.points[0].x, tri.points[0].y, // vertex A

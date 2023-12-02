@@ -79,8 +79,8 @@ void draw_texel(int x, int y,vec2_t point_a, vec2_t point_b, vec2_t point_c, flo
     float beta = weights.y;
     float gamma = weights.z;
 
-    float interpolated_u = u0 * alpha * u1 * beta * u2 * gamma;
-    float interpolated_v = v0 * alpha * v1 * beta * v2 * gamma;
+    float interpolated_u = (u0) * alpha + (u1) * beta + (u2) * gamma;
+    float interpolated_v = (v0) * alpha + (v1) * beta + (v2) * gamma;
 
     int tex_x = (int)abs(interpolated_u * texture_width);
     int tex_y = (int)abs(interpolated_v * texture_height);
@@ -189,17 +189,17 @@ void draw_textured_triangle(
 }
 
 vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p){
-    vec2_t ac = vec2_sub(a,c);
-    vec2_t ab = vec2_sub(b,a);
-    vec2_t pc = vec2_sub(c,p);
-    vec2_t pb = vec2_sub(b,p);
-    vec2_t ap = vec2_sub(p,a);
+     vec2_t ac = vec2_sub(c, a);
+    vec2_t ab = vec2_sub(b, a);
+    vec2_t ap = vec2_sub(p, a);
+    vec2_t pc = vec2_sub(c, p);
+    vec2_t pb = vec2_sub(b, p);
 
     float area_of_abc = (ac.x * ab.y - ac.y * ab.x); //  || AC X AB  ||
 
     float alpha = (pc.x * pb.y - pc.y * pb.x) / area_of_abc;
 
-    float beta = (ac.x * ap.y - ac.y * ap.x);
+    float beta = (ac.x * ap.y - ac.y * ap.x) / area_of_abc;
 
     float gamma = 1.0 - alpha - beta;
 
