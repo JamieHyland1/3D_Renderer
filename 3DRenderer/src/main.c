@@ -4,6 +4,7 @@
 #include <C:\SDL2\include\SDL.h>
 #include "array.h"
 #include "display.h"
+#include "upng.h"
 #include "vector.h"
 #include "mesh.h"
 #include "light.h"
@@ -53,7 +54,7 @@ bool setup(void){
     color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
     color_buffer_texture = SDL_CreateTexture(
         renderer,
-        SDL_PIXELFORMAT_ARGB8888,
+        SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_STREAMING,
         window_width,
         window_height
@@ -75,7 +76,7 @@ bool setup(void){
         return false;
         
     }
-   printf("value of length: %d", redbrick_uint32_length);
+   
    //mesh_texture = (uint32_t*)REDBRICK_TEXTURE;
 //    for(size_t i = 0; i < redbrick_uint32_length; ++i ){
 //     size_t uint8_index = i * 4;
@@ -85,7 +86,7 @@ bool setup(void){
 //    // printf("current colour: 0x%X\n", current_color);
 //    } 
 
-mesh_texture = (uint32_t*) REDBRICK_TEXTURE;
+load_png_texture_data("./assets/cube.png");
 
 
     return true;
@@ -104,7 +105,7 @@ void update(void){
 
     triangles_to_render = NULL;
 
-    mesh.rotation.x += 0.005;
+   // mesh.rotation.x += 0.005;
     mesh.rotation.y -= 0.005;
     mesh.translation.z = 5;
     
@@ -357,6 +358,7 @@ void free_resources(void){
     array_free(mesh.faces);
     array_free(mesh.face_normals);
     array_free(mesh.vertices);
+    upng_free(png_texture);
 
 }
 
