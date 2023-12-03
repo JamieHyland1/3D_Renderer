@@ -72,7 +72,7 @@ void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2,int y2, uint32_
 }
 
 
-void draw_texel(int x, int y,vec4_t point_a, vec4_t point_b, vec4_t point_c, float u0, float u1, float v0, float v1, float u2, float v2, uint32_t* texture){
+void draw_texel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t point_c, float u0, float u1, float v0, float v1, float u2, float v2, uint32_t* texture){
     vec2_t p = {x,y};
 
     vec2_t a = vec2_from_vec4(point_a);
@@ -82,7 +82,7 @@ void draw_texel(int x, int y,vec4_t point_a, vec4_t point_b, vec4_t point_c, flo
     vec3_t weights = barycentric_weights(a,b,c,p);
     
     float alpha = weights.x;
-    float beta = weights.y;
+    float beta  = weights.y;
     float gamma = weights.z;
 
     // interpolated values of U and V and the reciprocal of W
@@ -101,10 +101,10 @@ void draw_texel(int x, int y,vec4_t point_a, vec4_t point_b, vec4_t point_c, flo
     interpolated_u /= interpolated_reciprocal_w;
     interpolated_v /= interpolated_reciprocal_w;
 
-    int tex_x = (int)abs(interpolated_u * texture_width);
-    int tex_y = (int)abs(interpolated_v * texture_height);
+    int tex_x = (int)abs(interpolated_u * texture_width)  % texture_width; // hacky way to prevent texture indicies lesser than or greater than the texture width/height
+    int tex_y = (int)abs(interpolated_v * texture_height) % texture_height;
 
-    drawPixel(x,y,texture[tex_x + (tex_y * texture_width)]);
+   draw_pixel(x,y,texture[tex_x + (tex_y * texture_width)]);
 }
 
 void draw_textured_triangle(
@@ -143,6 +143,11 @@ void draw_textured_triangle(
         float_swap(&u0,&u1);
         float_swap(&v0,&v1);
     }
+
+    //Flip the V component for inverted V coordinates
+    v0 = 1.0-v0;
+    v1 = 1.0-v1;
+    v2 = 1.0-v2;
 
     //Create vector points after sorting vertices of triangle
     vec4_t point_a = {x0,y0,z0,w0};

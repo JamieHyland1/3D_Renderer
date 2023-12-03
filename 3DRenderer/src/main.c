@@ -68,25 +68,16 @@ bool setup(void){
     float zfar = 100.0;
     projection_matrix = mat4_make_perspective(fov, aspect, znear, zfar);
 
-    load_cube_mesh_data();
-    //load_obj_file_data("./assets/cube.obj");
+    //load_cube_mesh_data();
+    load_obj_file_data("./assets/skull.obj");
 
     if(!color_buffer){
         fprintf(stderr, "couldnt allocate memory for color buffer");
         return false;
         
     }
-   
-   //mesh_texture = (uint32_t*)REDBRICK_TEXTURE;
-//    for(size_t i = 0; i < redbrick_uint32_length; ++i ){
-//     size_t uint8_index = i * 4;
-//     uint32_t current_color;
-//     current_color = REDBRICK_TEXTURE[uint8_index] | REDBRICK_TEXTURE[uint8_index + 1] << 8 | REDBRICK_TEXTURE[uint8_index + 2] << 16 | REDBRICK_TEXTURE[uint8_index+3] << 24;
-//     mesh_texture[i] = current_color; 
-//    // printf("current colour: 0x%X\n", current_color);
-//    } 
 
-load_png_texture_data("./assets/cube.png");
+load_png_texture_data("./assets/SamHead.png");
 
 
     return true;
@@ -127,9 +118,9 @@ void update(void){
         
         vec3_t face_vertices[3];
 
-        face_vertices[0] = mesh.vertices[current_face.a - 1];
-        face_vertices[1] = mesh.vertices[current_face.b - 1];
-        face_vertices[2] = mesh.vertices[current_face.c - 1];
+        face_vertices[0] = mesh.vertices[current_face.a ];
+        face_vertices[1] = mesh.vertices[current_face.b ];
+        face_vertices[2] = mesh.vertices[current_face.c ];
 
         
        
