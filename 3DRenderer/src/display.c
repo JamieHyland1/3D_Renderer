@@ -104,7 +104,7 @@ void drawRect(int x, int y, int w, int h, uint32_t color){
     for(int j = y; j <= y+h; j++){
         for(int i = x; i <= x+w; i++){
             if((i <= window_width  && i >= 0) && (j <= window_height && j >= 0)){ 
-                drawPixel(i,j,color);
+               draw_pixel(i,j,color);
             }
         }
     }
@@ -130,7 +130,7 @@ void draw_grid(int xPlot, int rowSize){
     }
 }
 
-void drawPixel(int x, int y, uint32_t color){
+void draw_pixel(int x, int y, uint32_t color){
     if((x < window_width  && x >= 0) && (y < window_height && y >= 0)){    
         int index = (y*window_width) + x;
         color_buffer[index] = color;
@@ -159,7 +159,7 @@ void draw_line(int x0, int y0, int x1, int y1, uint32_t color) {
     float current_x = x0;
     float current_y = y0;
     for (int i = 0; i <= longest_side_length; i++) {
-        drawPixel(round(current_x), round(current_y), color);
+       draw_pixel(round(current_x), round(current_y), color);
         current_x += x_inc;
         current_y += y_inc;
     }

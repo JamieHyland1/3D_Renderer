@@ -25,7 +25,7 @@ void destroy_window(void);
 void clear_color_buffer(uint32_t color);
 void clear_color_buffer_gradient(uint32_t col1, uint32_t col2);
 void render_color_buffer(void);
-void drawPixel(int x, int y, uint32_t color);
+void draw_pixel(int x, int y, uint32_t color);
 void drawRect(int x, int y, int w, int h, uint32_t color);
 void draw_grid(int xPlot, int rowSize);
 void draw_boxed_grid(void);
