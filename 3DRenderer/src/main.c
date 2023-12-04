@@ -19,8 +19,10 @@ mat4_t projection_matrix;
 int previous_frame_time = 0;
 
 vec3_t camera_pos = {0,0,0};
+#define MAX_TRIANGLES_PER_MESH  10000
+triangle_t  triangles_to_render[MAX_TRIANGLES_PER_MESH];
 
-triangle_t*  triangles_to_render = NULL;
+int num_triangles_to_render = 0;
 
 uint32_t col_lerp(uint32_t a, uint32_t b, float t){
     return (uint32_t)(a + t * (b-a));
@@ -48,10 +50,14 @@ enum cull_method cull_mode;
 
 bool setup(void){
     cull_mode = CULL_BACKFACE;
-    render_mode = RENDER_WIRE;
+    render_mode = RENDER_TEXTURED;
      
     printf("Setting up Renderer\n");
+
+    // Allocating memory for color buffer and Z buffer
     color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
+    z_buffer = (float*)malloc(sizeof(float) * window_width * window_height);
+    
     color_buffer_texture = SDL_CreateTexture(
         renderer,
         SDL_PIXELFORMAT_RGBA32,
@@ -69,7 +75,7 @@ bool setup(void){
     projection_matrix = mat4_make_perspective(fov, aspect, znear, zfar);
 
     //load_cube_mesh_data();
-    load_obj_file_data("./assets/skull.obj");
+    load_obj_file_data("./assets/f22.obj");
 
     if(!color_buffer){
         fprintf(stderr, "couldnt allocate memory for color buffer");
@@ -91,13 +97,14 @@ void update(void){
     if(time_to_wait > 0 && time_to_wait <= FRAME_TARGET_TIME){
         SDL_Delay(time_to_wait);
     }
-
+    printf("Elapsed milliseconds : %d\n", SDL_GetTicks() - previous_frame_time);
     previous_frame_time = SDL_GetTicks();
 
-    triangles_to_render = NULL;
+    //reset number of triangles to render each frame
+    num_triangles_to_render = 0;
 
-   // mesh.rotation.x += 0.005;
-    mesh.rotation.y -= 0.005;
+    mesh.rotation.x += 0.005;
+   // mesh.rotation.y -= 0.005;
     mesh.translation.z = 5;
     
 
@@ -206,7 +213,6 @@ void update(void){
                 { projected_points[1].x, projected_points[1].y, projected_points[1].z, projected_points[1].w },
                 { projected_points[2].x, projected_points[2].y, projected_points[2].z, projected_points[2].w },
             },
-            .avg_depth = ((transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0),
             .texcoords = {
                 {current_face.a_uv.u, current_face.a_uv.v},
                 {current_face.b_uv.u, current_face.b_uv.v},
@@ -214,21 +220,9 @@ void update(void){
             },
             .color = triangle_color
             };
-
-
-        array_push(triangles_to_render,projected_triangle);
-
-        // Sort triangle in order of depth back to front
-        // TODO : add better sorting algorithm 
-        int num_triangles = array_length(triangles_to_render);
-        for(int i = 0; i < num_triangles; i ++){
-            for (int j = i+1; j < num_triangles; j ++){
-                if(triangles_to_render[j].avg_depth > triangles_to_render[i].avg_depth){
-                    triangle_t temp = triangles_to_render[i];
-                    triangles_to_render[i] = triangles_to_render[j];
-                    triangles_to_render[j] = temp;
-                }
-            }
+        if(num_triangles_to_render < MAX_TRIANGLES_PER_MESH){
+            triangles_to_render[num_triangles_to_render] = projected_triangle;
+            num_triangles_to_render++;
         }
     }
 }
@@ -265,11 +259,12 @@ void render(void){
     uint32_t col = 0x000000;
 
     clear_color_buffer_gradient(col,col);
+    clear_z_buffer();
      draw_grid(10,40);
-    int num_triangles = array_length(triangles_to_render);
+    
     
    
-    for(int i = 0; i < num_triangles; i ++){
+    for(int i = 0; i < num_triangles_to_render; i ++){
         triangle_t tri = triangles_to_render[i];
         //Draw based on the render mode
         switch(render_mode){
@@ -294,18 +289,18 @@ void render(void){
             break;
             case RENDER_FILL_TRIANGLE:
                   draw_filled_triangle(
-                    tri.points[0].x, tri.points[0].y, // vertex A
-                    tri.points[1].x, tri.points[1].y, // vertex B
-                    tri.points[2].x, tri.points[2].y, // vertex C
-                0xFFFFFF
+                tri.points[0].x, tri.points[0].y, tri.points[0].z ,tri.points[0].w,  // vertex A
+                tri.points[1].x, tri.points[1].y, tri.points[1].z ,tri.points[1].w,  // vertex B
+                tri.points[2].x, tri.points[2].y, tri.points[2].z ,tri.points[2].w,  // vertex C
+                tri.color
                 );
             break;
             case RENDER_FILL_TRIANGLE_WIRE:
                  draw_filled_triangle(
-            tri.points[0].x, tri.points[0].y, // vertex A
-            tri.points[1].x, tri.points[1].y, // vertex B
-            tri.points[2].x, tri.points[2].y, // vertex C
-            0xFFFFFF
+                tri.points[0].x, tri.points[0].y, tri.points[0].z ,tri.points[0].w,  // vertex A
+                tri.points[1].x, tri.points[1].y, tri.points[1].z ,tri.points[1].w,  // vertex B
+                tri.points[2].x, tri.points[2].y, tri.points[2].z ,tri.points[2].w,  // vertex C
+            tri.color
             ); 
             draw_triangle(
             tri.points[0].x, tri.points[0].y, // vertex A
@@ -339,13 +334,14 @@ void render(void){
         }
      
     }
-    array_free(triangles_to_render);
+   
     SDL_RenderPresent(renderer);
 }
 
 
 void free_resources(void){
     free(color_buffer);
+    free(z_buffer);
     array_free(mesh.faces);
     array_free(mesh.face_normals);
     array_free(mesh.vertices);
