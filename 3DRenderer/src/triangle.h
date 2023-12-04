@@ -20,7 +20,10 @@ typedef struct {
     uint32_t color;
 }triangle_t;
 
-void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2,int y2, uint32_t color);
+void draw_filled_triangle( 
+    int x0, int y0, float z0, float w0,
+    int x1, int y1, float z1, float w1,
+    int x2, int y2, float z2, float w2, uint32_t color);
 
 
 //TODO: DRAW VOID_DRAW_TEXTURED_TRIANGLE
@@ -32,5 +35,7 @@ void draw_textured_triangle(
 );
 
 vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p);
-void draw_texel(int x, int y,vec4_t point_a, vec4_t point_b, vec4_t point_c, float u0, float u1, float v0, float v1, float u2, float v2, uint32_t* texture);
+void draw_filled_pixel(int x, int y,vec4_t point_a, vec4_t point_b, vec4_t point_c,  uint32_t color);
+void draw_textured_texel(int x, int y,vec4_t point_a, vec4_t point_b, vec4_t point_c, float u0, float u1, float v0, float v1, float u2, float v2, uint32_t* texture);
+
 #endif

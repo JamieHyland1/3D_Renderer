@@ -10,6 +10,7 @@ SDL_Texture* color_buffer_texture = NULL;
 
 //declare an array to uint32 elements
 uint32_t* color_buffer = NULL;
+float* z_buffer = NULL;
 
 int window_width = 640;
 int window_height = 480;
@@ -100,6 +101,16 @@ void clear_color_buffer_gradient(uint32_t col1, uint32_t col2){
         nb = lerp((float)b2,(float)b1,t);
     }
 }
+
+
+void clear_z_buffer(){
+    for(int y = 0; y < window_height; y++){
+        for(int x =0; x < window_width; x++){
+            z_buffer[(window_width*y) + x] = 0.0;
+        }
+    }
+}
+
 void drawRect(int x, int y, int w, int h, uint32_t color){
     for(int j = y; j <= y+h; j++){
         for(int i = x; i <= x+w; i++){
