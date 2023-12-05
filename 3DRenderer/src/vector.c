@@ -75,7 +75,7 @@ vec3_t vec3_sub(vec3_t a, vec3_t b) {
     return result;
 }
 
-vec3_t vec3_mul(vec3_t v, float factor) {
+vec3_t vec3_mult(vec3_t v, float factor) {
     vec3_t result = {
         .x = v.x * factor,
         .y = v.y * factor,
