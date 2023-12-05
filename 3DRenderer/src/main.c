@@ -12,13 +12,17 @@
 #include "matrix.h"
 #include "texture.h"
 #include "triangle.h"
+#include "camera.h"
 
 
 bool isRunning = false; 
+float delta_time;
+mat4_t world_matrix;
 mat4_t projection_matrix;
+mat4_t view_matrix; 
 int previous_frame_time = 0;
 
-vec3_t camera_pos = {0,0,0};
+
 #define MAX_TRIANGLES_PER_MESH  10000
 triangle_t  triangles_to_render[MAX_TRIANGLES_PER_MESH];
 
@@ -43,6 +47,8 @@ enum render_method{
     RENDER_TEXTURED,
     RENDER_TEXTURED_WIRE
 } render_method;
+
+
 
 uint32_t t;
 enum render_method render_mode;
@@ -75,7 +81,7 @@ bool setup(void){
     projection_matrix = mat4_make_perspective(fov, aspect, znear, zfar);
 
     //load_cube_mesh_data();
-    load_obj_file_data("./assets/f22.obj");
+    load_obj_file_data("./assets/skull.obj");
 
     if(!color_buffer){
         fprintf(stderr, "couldnt allocate memory for color buffer");
@@ -89,27 +95,37 @@ load_png_texture_data("./assets/SamHead.png");
     return true;
 }
 
-
-
 void update(void){
     int time_to_wait = FRAME_TARGET_TIME - (SDL_GetTicks()-previous_frame_time);
 
     if(time_to_wait > 0 && time_to_wait <= FRAME_TARGET_TIME){
         SDL_Delay(time_to_wait);
     }
-    printf("Elapsed milliseconds : %d\n", SDL_GetTicks() - previous_frame_time);
-    previous_frame_time = SDL_GetTicks();
+    //printf("Elapsed milliseconds : %d\n", SDL_GetTicks() - previous_frame_time);
+   
+
+    delta_time = (SDL_GetTicks() - previous_frame_time)/1000.0;
+
+     previous_frame_time = SDL_GetTicks();
 
     //reset number of triangles to render each frame
     num_triangles_to_render = 0;
 
-    mesh.rotation.x += 0.005;
-   // mesh.rotation.y -= 0.005;
-    mesh.translation.z = 5;
+    // mesh.rotation.x += 0.5 * delta_time;
+    // mesh.rotation.y -= 0.5 * delta_time;
+    mesh.translation.z = 5.0;
+ 
+   //create view matrix
+   //TODO: compute new camera rotation and translation for fps movement
+    vec3_t target = {0,0,1};
+    vec3_t up = {0,1,0};
+    mat4_t camera_yaw_rotation = mat4_rotate_y(camera.yaw_angle);
+    camera.direction = vec3_from_vec4(matrix_mult_vec4(camera_yaw_rotation,vec4_from_vec3(target)));
+
+    target = vec3_add(camera.position,camera.direction);
     
 
-    //mesh.translation.z = -camera_pos.z;
-   
+    view_matrix = mat4_look_at(camera.position,target,up);
 
     mat4_t scale_matrix =       mat4_make_scale(mesh.scale.x,mesh.scale.y,mesh.scale.z);
     mat4_t translation_matrix = mat4_make_translation(mesh.translation.x,mesh.translation.y,mesh.translation.z);
@@ -138,24 +154,28 @@ void update(void){
             vec4_t current_vertex = vec4_from_vec3(face_vertices[j]);
 
             // Create a world matrix
-            mat4_t world_matrix = mat4_identity();
+            world_matrix = mat4_identity();
 
             // Multiply Scale -> Rotation -> Translation ORDER MATTERS >:(
-            world_matrix = matrix_mult_mat4(scale_matrix,world_matrix);
+            world_matrix = matrix_mult_mat4(scale_matrix,      world_matrix);
+            world_matrix = matrix_mult_mat4(rotation_matrix_z, world_matrix);
+            world_matrix = matrix_mult_mat4(rotation_matrix_y, world_matrix);
+            world_matrix = matrix_mult_mat4(rotation_matrix_x, world_matrix);
             
-            world_matrix = matrix_mult_mat4(rotation_matrix_x,world_matrix);
-            world_matrix = matrix_mult_mat4(rotation_matrix_y,world_matrix);
-            world_matrix = matrix_mult_mat4(rotation_matrix_z,world_matrix);
+            
+            world_matrix = matrix_mult_mat4(translation_matrix, world_matrix);
 
-            world_matrix = matrix_mult_mat4(translation_matrix,world_matrix);
+            current_vertex = matrix_mult_vec4(world_matrix, current_vertex);
+
+            current_vertex = matrix_mult_vec4(view_matrix, current_vertex);
            
-            transformed_vertices[j] = matrix_mult_vec4(world_matrix,current_vertex);
+            transformed_vertices[j] = current_vertex;
             
         }
-
+        vec3_t origin = {0,0,0};
 
         //Cull back faces
-        vec3_t cameraRay = vec3_sub(camera_pos,vec3_from_vec4(transformed_vertices[0]));
+        vec3_t cameraRay = vec3_sub(origin,vec3_from_vec4(transformed_vertices[0]));
 
         vec3_t v1 = vec3_sub(vec3_from_vec4(transformed_vertices[1]),vec3_from_vec4(transformed_vertices[0]));
         vec3_t v2 = vec3_sub(vec3_from_vec4(transformed_vertices[2]),vec3_from_vec4(transformed_vertices[0]));
@@ -227,29 +247,47 @@ void update(void){
     }
 }
 
-
 void process_input(void){
     SDL_Event event;
-    SDL_PollEvent(&event);
-    switch(event.type){
-        case SDL_QUIT:
-            isRunning = false;
-            break;
-        case SDL_KEYDOWN:
-            if(event.key.keysym.sym == SDLK_ESCAPE){
+    while (SDL_PollEvent(&event)) {;
+        switch(event.type){
+            case SDL_QUIT:
                 isRunning = false;
-            }
-            // else if(event.key.keysym.sym == SDLK_UP) camera_pos.z += 2.0;
-            // else if(event.key.keysym.sym == SDLK_DOWN) camera_pos.z -= 2.0;
-            else if(event.key.keysym.sym == SDLK_1)render_mode = RENDER_WIRE_VERTEX;
-            else if(event.key.keysym.sym == SDLK_2)render_mode = RENDER_WIRE;
-            else if(event.key.keysym.sym == SDLK_3)render_mode = RENDER_FILL_TRIANGLE;
-            else if(event.key.keysym.sym == SDLK_4)render_mode = RENDER_FILL_TRIANGLE_WIRE;
-            else if(event.key.keysym.sym == SDLK_5)render_mode = RENDER_TEXTURED;
-            else if(event.key.keysym.sym == SDLK_6)render_mode = RENDER_TEXTURED_WIRE;
-            else if(event.key.keysym.sym == SDLK_c) cull_mode = CULL_BACKFACE;
-            else if(event.key.keysym.sym == SDLK_d) cull_mode = CULL_NONE;
-            break;        
+                break;
+            case SDL_KEYDOWN:
+                if(event.key.keysym.sym == SDLK_ESCAPE){
+                    isRunning = false;
+                }
+                // else if(event.key.keysym.sym == SDLK_UP){camera.forward_velocity.z += 2.0 * delta_time;}
+                // else if(event.key.keysym.sym == SDLK_DOWN)camera.forward_velocity.z -= 2.0 * delta_time;
+                else if(event.key.keysym.sym == SDLK_w){
+                    camera.forward_velocity = vec3_mult(camera.direction,(float) 5.0 * delta_time);
+                    camera.position = vec3_add(camera.position,camera.forward_velocity);
+                }
+                else if(event.key.keysym.sym == SDLK_s){
+                    camera.forward_velocity = vec3_mult(camera.direction, (float)5.0 * delta_time);
+                    camera.position = vec3_sub(camera.position,camera.forward_velocity);
+                }
+                else if(event.key.keysym.sym == SDLK_UP)camera.position.y += 12.0 * delta_time;
+                else if(event.key.keysym.sym == SDLK_DOWN)camera.position.y -= 12.0 * delta_time;
+                else if(event.key.keysym.sym == SDLK_a){
+                    camera.yaw_angle += 1.0 * delta_time;
+                    // camera.direction = vec3_rotate_y(camera.direction,camera.yaw_angle);
+                }
+                else if(event.key.keysym.sym == SDLK_d){
+                    camera.yaw_angle -= 1.0 * delta_time;
+                    // camera.direction = vec3_rotate_y(camera.direction,camera.yaw_angle);
+                }
+                else if(event.key.keysym.sym == SDLK_1)render_mode = RENDER_WIRE_VERTEX;
+                else if(event.key.keysym.sym == SDLK_2)render_mode = RENDER_WIRE;
+                else if(event.key.keysym.sym == SDLK_3)render_mode = RENDER_FILL_TRIANGLE;
+                else if(event.key.keysym.sym == SDLK_4)render_mode = RENDER_FILL_TRIANGLE_WIRE;
+                else if(event.key.keysym.sym == SDLK_5)render_mode = RENDER_TEXTURED;
+                else if(event.key.keysym.sym == SDLK_6)render_mode = RENDER_TEXTURED_WIRE;
+                else if(event.key.keysym.sym == SDLK_c) cull_mode = CULL_BACKFACE;
+                else if(event.key.keysym.sym == SDLK_x) cull_mode = CULL_NONE;
+                break;        
+        }
     }
 }
 
@@ -275,9 +313,9 @@ void render(void){
                 tri.points[2].x, tri.points[2].y, // vertex C
                 0xFFFFFF
                 );
-                drawRect(tri.points[0].x+camera_pos.x, tri.points[0].y+camera_pos.y, 5, 5, 0xFF0000);
-                drawRect(tri.points[1].x+camera_pos.x, tri.points[1].y+camera_pos.y, 5, 5, 0xFF0000);
-                drawRect(tri.points[2].x+camera_pos.x, tri.points[2].y+camera_pos.y, 5, 5, 0xFF0000);
+                drawRect(tri.points[0].x, tri.points[0].y, 5, 5, 0xFF0000);
+                drawRect(tri.points[1].x, tri.points[1].y, 5, 5, 0xFF0000);
+                drawRect(tri.points[2].x, tri.points[2].y, 5, 5, 0xFF0000);
             break;
             case RENDER_WIRE:
                   draw_triangle(
@@ -337,7 +375,6 @@ void render(void){
    
     SDL_RenderPresent(renderer);
 }
-
 
 void free_resources(void){
     free(color_buffer);

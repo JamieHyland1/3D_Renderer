@@ -12,6 +12,12 @@ mat4_t matrix_mult_mat4(mat4_t a, mat4_t b);
 vec4_t matrix_mult_vec4(mat4_t m, vec4_t v);
 
 ///////////
+//Camera
+///////////
+
+mat4_t mat4_look_at(vec3_t eye, vec3_t target, vec3_t up);
+
+///////////
 //Rotations
 ///////////
 
@@ -26,5 +32,6 @@ mat4_t mat4_rotate_y(float angle);
 //////////////
 mat4_t mat4_make_perspective(float fov, float aspect, float znear, float zfar);
 vec4_t mat4_mul_vec4_project(mat4_t proj, vec4_t v);
+
 
 #endif

@@ -1,5 +1,6 @@
 #include "matrix.h"
 #include <math.h>
+#include "vector.h"
 mat4_t mat4_identity(){
     mat4_t I = {{
         {1,0,0,0},
@@ -56,6 +57,25 @@ vec4_t matrix_mult_vec4(mat4_t m, vec4_t v){
 // | 0  cos(a) -sin(a)  0 |   | y |
 // | 0  sin(a)  cos(a)  0 | * | z |
 // | 0    0       0     1 |   | 1 |
+
+mat4_t mat4_look_at(vec3_t eye, vec3_t target, vec3_t up){
+    //get the vector from the target to the camera
+    vec3_t z = vec3_sub(target,eye); // forward vector
+    vec3_normalize(&z);
+    vec3_t x = vec3_cross(up,z); // right vector
+    vec3_normalize(&x);
+    vec3_t y = vec3_cross(z,x); // up vector (according to camera rotation)
+
+    mat4_t view_matrix = {{
+        {x.x,x.y,x.z, -vec3_dot(x,eye)},
+        {y.x,y.y,y.z, -vec3_dot(y,eye)},
+        {z.x,z.y,z.z, -vec3_dot(z,eye)},
+        {0,   0,  0,             1    },
+    }};
+
+    return view_matrix;
+
+}
 
 mat4_t mat4_rotate_z(float angle){
     mat4_t m = mat4_identity();
