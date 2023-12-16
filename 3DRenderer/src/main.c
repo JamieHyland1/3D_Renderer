@@ -13,7 +13,7 @@
 #include "texture.h"
 #include "triangle.h"
 #include "camera.h"
-
+#include "clipping.h"
 
 bool isRunning = false; 
 float delta_time;
@@ -74,12 +74,17 @@ bool setup(void){
     
 
     //Initialize projection matrix
-    float fov = M_PI / 3.0;
-    float aspect = (float)window_height/(float)window_width;
+    float aspect_x = (float)window_width/(float)window_height;
+    float aspect_y = (float)window_height/(float)window_width;
+
+    
+    float fov_y = M_PI / 3.0;
+    float fov_x = atan(tan(fov_y / 2) * aspect_x)*2;
+    
     float znear = 0.1;
     float zfar = 100.0;
-    projection_matrix = mat4_make_perspective(fov, aspect, znear, zfar);
-
+    projection_matrix = mat4_make_perspective(fov_y, aspect_y, znear, zfar);
+    init_frustum_planes(fov_x, fov_y, znear, zfar);
     //load_cube_mesh_data();
     load_obj_file_data("./assets/skull.obj");
 
@@ -136,7 +141,9 @@ void update(void){
 
     int num_faces = array_length(mesh.faces);
     for(int i = 0; i < num_faces; i ++){
-        
+        //if(i != 4)continue;
+
+
         face_t current_face = mesh.faces[i];
         
         vec3_t face_vertices[3];
@@ -168,13 +175,13 @@ void update(void){
             current_vertex = matrix_mult_vec4(world_matrix, current_vertex);
 
             current_vertex = matrix_mult_vec4(view_matrix, current_vertex);
-           
             transformed_vertices[j] = current_vertex;
             
         }
         vec3_t origin = {0,0,0};
-
+        /////////////////
         //Cull back faces
+        /////////////////
         vec3_t cameraRay = vec3_sub(origin,vec3_from_vec4(transformed_vertices[0]));
 
         vec3_t v1 = vec3_sub(vec3_from_vec4(transformed_vertices[1]),vec3_from_vec4(transformed_vertices[0]));
@@ -187,9 +194,7 @@ void update(void){
         vec3_normalize(&main_light.direction);
 
 
-       
         float orientation_from_camera = vec3_dot(tri_normal,cameraRay);
-      // printf("orientation from camera: %f", orientation_from_camera);
         if(cull_mode == CULL_BACKFACE){
             if(orientation_from_camera < 0){
                 continue;
@@ -198,53 +203,93 @@ void update(void){
 
 
 
-         float orientation_from_light = -vec3_dot(tri_normal, main_light.direction);
-        uint32_t triangle_color = light_apply_intensity(0xFFFFFF,orientation_from_light);
-        orientation_from_light = orientation_from_light < 0.15 ? 0.15 : orientation_from_light;
-        orientation_from_light = orientation_from_light > 1.00 ? 1.00 : orientation_from_light;
+        ////////////////
+        //Clipping stage
+        ////////////////
+
+        // Create a polygon from the transformed triangle
+        polygon_t polygon = create_polygon_from_triangle(
+            vec3_from_vec4(transformed_vertices[0]),
+            vec3_from_vec4(transformed_vertices[1]),
+            vec3_from_vec4(transformed_vertices[2]),
+            current_face.a_uv,
+            current_face.b_uv,
+            current_face.c_uv
+        );
+
+        // Clip polygon with the view frustum
+        clip_polygon(&polygon);
+
+        //printf("number of vertices after clipping: %d\n", polygon.num_vertices);
         
+        // Break clipped polygon into triangles to be rendered
+        triangle_t tris_after_clipping[MAX_NUM_POLY_TRIS];
+        int num_triangles_after_clipping = 0;
 
+        triangles_from_polygon(&polygon, tris_after_clipping, &num_triangles_after_clipping);
 
-        
+        // Loop through triangles after clipping
 
-        vec4_t projected_points[3];
+        for(int t = 0; t < num_triangles_after_clipping; t++){
 
-        for(int j = 0; j < 3; j++){
-            projected_points[j] = mat4_mul_vec4_project(projection_matrix,transformed_vertices[j]);
+            triangle_t triangle_after_clipping = tris_after_clipping[t];
+
+            vec4_t projected_points[3];
+
+            for(int j = 0; j < 3; j++){
+                projected_points[j] = mat4_mul_vec4_project(projection_matrix,triangle_after_clipping.points[j]);
+                
+                
+                //Scale to middle of screen
+                projected_points[j].x *= window_width/2.0;
+                projected_points[j].y *= window_height/2.0;
+                
+
+                //Invert Y values to account for flipped y screen coordinate
+                projected_points[j].y *= -1;
+
+                //Translate to middle of screen
+                projected_points[j].x += window_width/2.0;
+                projected_points[j].y += window_height/2.0;
             
-            
-             //Scale to middle of screen
-            projected_points[j].x *= window_width/2.0;
-            projected_points[j].y *= window_height/2.0;
-            
+            }
 
-            //Invert Y values to account for flipped y screen coordinate
-            projected_points[j].y *= -1;
 
-            //Translate to middle of screen
-            projected_points[j].x += window_width/2.0;
-            projected_points[j].y += window_height/2.0;
-           
-        }
-        
-        triangle_t projected_triangle = {
-            .points = {
-                { projected_points[0].x, projected_points[0].y, projected_points[0].z, projected_points[0].w },
-                { projected_points[1].x, projected_points[1].y, projected_points[1].z, projected_points[1].w },
-                { projected_points[2].x, projected_points[2].y, projected_points[2].z, projected_points[2].w },
-            },
-            .texcoords = {
-                {current_face.a_uv.u, current_face.a_uv.v},
-                {current_face.b_uv.u, current_face.b_uv.v},
-                {current_face.c_uv.u, current_face.c_uv.v}
-            },
-            .color = triangle_color
-            };
-        if(num_triangles_to_render < MAX_TRIANGLES_PER_MESH){
-            triangles_to_render[num_triangles_to_render] = projected_triangle;
-            num_triangles_to_render++;
-        }
+
+            ////////////////
+            //Lighting stage
+            ////////////////
+            
+            float orientation_from_light = -vec3_dot(tri_normal, main_light.direction);
+            uint32_t triangle_color = light_apply_intensity(0xFFFFFF,orientation_from_light);
+            orientation_from_light = orientation_from_light < 0.15 ? 0.15 : orientation_from_light;
+            orientation_from_light = orientation_from_light > 1.00 ? 1.00 : orientation_from_light;
+
+
+            
+            triangle_t triangle_to_render = {
+                .points = {
+                    { projected_points[0].x, projected_points[0].y, projected_points[0].z, projected_points[0].w },
+                    { projected_points[1].x, projected_points[1].y, projected_points[1].z, projected_points[1].w },
+                    { projected_points[2].x, projected_points[2].y, projected_points[2].z, projected_points[2].w },
+                },
+                .texcoords = {
+                    {triangle_after_clipping.texcoords[0].u, triangle_after_clipping.texcoords[0].v},
+                    {triangle_after_clipping.texcoords[1].u, triangle_after_clipping.texcoords[1].v},
+                    {triangle_after_clipping.texcoords[2].u, triangle_after_clipping.texcoords[2].v}
+                },
+                .color = triangle_color
+                };
+            if(num_triangles_to_render < MAX_TRIANGLES_PER_MESH){
+                triangles_to_render[num_triangles_to_render] = triangle_to_render;
+                num_triangles_to_render++;
+            }
     }
+
+
+
+
+        }        
 }
 
 void process_input(void){
@@ -292,16 +337,14 @@ void process_input(void){
 }
 
 void render(void){
-   
     render_color_buffer();
     uint32_t col = 0x000000;
 
     clear_color_buffer_gradient(col,col);
     clear_z_buffer();
-     draw_grid(10,40);
+    draw_grid(10,40);
     
     
-   
     for(int i = 0; i < num_triangles_to_render; i ++){
         triangle_t tri = triangles_to_render[i];
         //Draw based on the render mode
@@ -366,7 +409,7 @@ void render(void){
             tri.points[0].x, tri.points[0].y, // vertex A
             tri.points[1].x, tri.points[1].y, // vertex B
             tri.points[2].x, tri.points[2].y, // vertex C
-            0xFFFFFF
+            0X000000
             );
             break;
         }

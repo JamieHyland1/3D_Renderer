@@ -303,7 +303,7 @@ void draw_textured_texel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t po
 }
 
 vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p){
-     vec2_t ac = vec2_sub(c, a);
+    vec2_t ac = vec2_sub(c, a);
     vec2_t ab = vec2_sub(b, a);
     vec2_t ap = vec2_sub(p, a);
     vec2_t pc = vec2_sub(c, p);
