@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "upng.h"
-
+#include "texture.h"
 int texture_width = 64;
 int texture_height = 64;
 upng_t* png_texture = NULL;
@@ -17,4 +17,12 @@ void load_png_texture_data(char* filename){
             texture_height = upng_get_height(png_texture);
         }
     }
+}
+
+tex2_t new_tex2(float u, float v){
+    tex2_t result;
+    result.u = u;
+    result.v = v;
+
+    return result;
 }

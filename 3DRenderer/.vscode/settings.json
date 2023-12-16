@@ -11,7 +11,8 @@
         "stdint.h": "c",
         "stdbool.h": "c",
         "stdio.h": "c",
-        "vector.h": "c"
+        "vector.h": "c",
+        "clipping.h": "c"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }
