@@ -1,61 +1,22 @@
 #include <stdio.h>
-#include  <unistd.h>
 #include "array.h"
 #include "mesh.h"
-
+#include "upng.h"
 mesh_t mesh = {
-  .vertices =NULL,
-  .faces = NULL,
-  .face_normals = NULL,
-  .rotation = {0,0,0},
-  .scale = {1.0,1.0,1.0},
-  .translation = {0,0,0}
+    .vertices =NULL,
+    .faces = NULL,
+    .face_normals = NULL,
+    .rotation = {0,0,0},
+    .scale = {1.0,1.0,1.0},
+    .translation = {0,0,0}
 };
 
- vec3_t cube_vertices[N_CUBE_VERTICES] = {
-    { .x = -1, .y = -1, .z = -1 }, // 1
-    { .x = -1, .y =  1, .z = -1 }, // 2
-    { .x =  1, .y =  1, .z = -1 }, // 3
-    { .x =  1, .y = -1, .z = -1 }, // 4
-    { .x =  1, .y =  1, .z =  1 }, // 5
-    { .x =  1, .y = -1, .z =  1 }, // 6
-    { .x = -1, .y =  1, .z =  1 }, // 7
-    { .x = -1, .y = -1, .z =  1 }  // 8
-};
+#define MAX_NUMBER_MESHES 10    
+static mesh_t meshes[MAX_NUMBER_MESHES];
+static int mesh_count = 0;
 
-face_t cube_faces[N_CUBE_FACES] = {
-     // front
-      { .a = 1, .b = 2, .c = 3, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }},
-    { .a = 1, .b = 3, .c = 4, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }},
-    // right
-    { .a = 4, .b = 3, .c = 5, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }},
-    { .a = 4, .b = 5, .c = 6, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }},
-    // back
-    { .a = 6, .b = 5, .c = 7, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }},
-    { .a = 6, .b = 7, .c = 8, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }},
-    // left
-    { .a = 8, .b = 7, .c = 2, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }},
-    { .a = 8, .b = 2, .c = 1, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }},
-    // top
-    { .a = 2, .b = 7, .c = 5, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }},
-    { .a = 2, .b = 5, .c = 3, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }},
-    // bottom
-    { .a = 6, .b = 8, .c = 1, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }},
-    { .a = 6, .b = 1, .c = 4, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }}
-};
 
-void load_cube_mesh_data(void) {
-    for (int i = 0; i < N_CUBE_VERTICES; i++) {
-        vec3_t cube_vertex = cube_vertices[i];
-        array_push(mesh.vertices, cube_vertex);
-    }
-    for (int i = 0; i < N_CUBE_FACES; i++) {
-        face_t cube_face = cube_faces[i];
-        array_push(mesh.faces, cube_face);
-    }
-}
-
-void load_obj_file_data(char* filename) {
+void load_mesh_obj_data(mesh_t* mesh, char* filename) {
     FILE* file;
     file = fopen(filename, "r");
     char line[1024];
@@ -65,7 +26,7 @@ void load_obj_file_data(char* filename) {
         if (strncmp(line, "v ", 2) == 0) {
             vec3_t vertex;
             sscanf(line, "v %f %f %f", &vertex.x, &vertex.y, &vertex.z);
-            array_push(mesh.vertices, vertex);
+            array_push(mesh->vertices, vertex);
         }
         // Texture Coordinate information
         if(strncmp(line,"vt ",3) == 0){
@@ -93,8 +54,50 @@ void load_obj_file_data(char* filename) {
                 .c_uv = texcoords[texture_indices[2] - 1]
                 
             };
-            array_push(mesh.faces, face);
+            array_push(mesh->faces, face);
         }
     }
     array_free(texcoords);
+}
+
+void load_mesh_png_data(mesh_t* mesh, char* filename){
+    upng_t* png_image = upng_new_from_file(filename);
+    if(png_image != NULL){
+        upng_decode(png_image);
+        if(upng_get_error(png_image) == UPNG_EOK){
+            mesh->texture = png_image;
+        }
+    }else{
+        fprintf(stderr, "Error getting texture data");
+    }
+}
+
+void load_mesh(char* obj_path, char* png_path, vec3_t scale, vec3_t translation, vec3_t rotation){
+    load_mesh_obj_data(&meshes[mesh_count], obj_path);
+    load_mesh_png_data(&meshes[mesh_count], png_path);
+   
+    meshes[mesh_count].scale = scale;
+    meshes[mesh_count].translation = translation;
+    meshes[mesh_count].rotation = rotation;
+
+
+    mesh_count++;
+
+}
+
+int get_num_meshes(){
+    return mesh_count;
+}
+
+mesh_t* get_mesh(int index){
+    return &meshes[index];
+}
+
+void free_meshes(){
+    for(int i = 0; i < mesh_count; i ++){
+        array_free(meshes[i].faces);
+        array_free(meshes[i].face_normals);
+        array_free(meshes[i].vertices);
+        upng_free(meshes[i].texture);
+    }
 }

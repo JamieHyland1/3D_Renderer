@@ -12,7 +12,8 @@
         "stdbool.h": "c",
         "stdio.h": "c",
         "vector.h": "c",
-        "clipping.h": "c"
+        "clipping.h": "c",
+        "texture.h": "c"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }
