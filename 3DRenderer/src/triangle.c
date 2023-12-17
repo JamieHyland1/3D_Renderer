@@ -251,10 +251,10 @@ void draw_filled_pixel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t poin
     //Only draw pixel if depth of pixel is greater than previous pixel
     // 1 <- right in front of camera 0 -> farthest point to the camera
 
-    if(interpolated_reciprocal_w > z_buffer[(window_width * y) + x]){
+    if(interpolated_reciprocal_w > get_z_buffer_at(x, y)){
         draw_pixel(x,y,color);
         //update z buffer of current pixel
-        z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
+      update_zbuffer(x, y, interpolated_reciprocal_w);
     }
 }
 
@@ -295,10 +295,10 @@ void draw_textured_texel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t po
     //Only draw pixel if depth of pixel is greater than previous pixel
     // 1 <- right in front of camera 0 -> farthest point to the camera
 
-    if(interpolated_reciprocal_w > z_buffer[(window_width * y) + x]){
+    if(interpolated_reciprocal_w > get_z_buffer_at(x, y) ){
         draw_pixel(x,y,texture[tex_x + (tex_y * texture_width)]);
         //update z buffer of current pixel
-        z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
+       update_zbuffer(x, y, interpolated_reciprocal_w);
     }
 }
 

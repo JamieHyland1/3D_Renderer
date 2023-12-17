@@ -32,7 +32,7 @@ uint32_t col_lerp(uint32_t a, uint32_t b, float t){
     return (uint32_t)(a + t * (b-a));
 }
 
-light_t main_light = {.direction = {0,0,1}};
+
 
 enum cull_method{
     CULL_NONE,
@@ -49,53 +49,36 @@ enum render_method{
 } render_method;
 
 
-
-uint32_t t;
 enum render_method render_mode;
 enum cull_method cull_mode;
 
 bool setup(void){
+    // Set Initial Render Modes
     cull_mode = CULL_BACKFACE;
     render_mode = RENDER_TEXTURED;
      
-    printf("Setting up Renderer\n");
+   // Initialize Light Direction
+    init_light(vec3_new(0,0,1));
 
-    // Allocating memory for color buffer and Z buffer
-    color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
-    z_buffer = (float*)malloc(sizeof(float) * window_width * window_height);
     
-    color_buffer_texture = SDL_CreateTexture(
-        renderer,
-        SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_STREAMING,
-        window_width,
-        window_height
-    );
-    
-
     //Initialize projection matrix
-    float aspect_x = (float)window_width/(float)window_height;
-    float aspect_y = (float)window_height/(float)window_width;
+    float aspect_x = (float)get_window_width()/(float)get_window_height();
+    float aspect_y = (float)get_window_height()/(float)get_window_width();
 
-    
     float fov_y = M_PI / 3.0;
     float fov_x = atan(tan(fov_y / 2) * aspect_x)*2;
     
     float znear = 0.1;
     float zfar = 100.0;
     projection_matrix = mat4_make_perspective(fov_y, aspect_y, znear, zfar);
+   
     init_frustum_planes(fov_x, fov_y, znear, zfar);
-    //load_cube_mesh_data();
+    
+    
+    
+    
     load_obj_file_data("./assets/skull.obj");
-
-    if(!color_buffer){
-        fprintf(stderr, "couldnt allocate memory for color buffer");
-        return false;
-        
-    }
-
-load_png_texture_data("./assets/SamHead.png");
-
+    load_png_texture_data("./assets/SamHead.png");
 
     return true;
 }
@@ -107,30 +90,28 @@ void update(void){
         SDL_Delay(time_to_wait);
     }
     //printf("Elapsed milliseconds : %d\n", SDL_GetTicks() - previous_frame_time);
-   
 
     delta_time = (SDL_GetTicks() - previous_frame_time)/1000.0;
 
-     previous_frame_time = SDL_GetTicks();
+    previous_frame_time = SDL_GetTicks();
 
     //reset number of triangles to render each frame
     num_triangles_to_render = 0;
 
     // mesh.rotation.x += 0.5 * delta_time;
-    // mesh.rotation.y -= 0.5 * delta_time;
+    mesh.rotation.y -= 0.5 * delta_time;
     mesh.translation.z = 5.0;
- 
+
    //create view matrix
    //TODO: compute new camera rotation and translation for fps movement
-    vec3_t target = {0,0,1};
-    vec3_t up = {0,1,0};
-    mat4_t camera_yaw_rotation = mat4_rotate_y(camera.yaw_angle);
-    camera.direction = vec3_from_vec4(matrix_mult_vec4(camera_yaw_rotation,vec4_from_vec3(target)));
 
-    target = vec3_add(camera.position,camera.direction);
+
+
+    vec3_t up = {0,1,0};
+    vec3_t target = get_camera_lookat_target();
     
 
-    view_matrix = mat4_look_at(camera.position,target,up);
+    view_matrix = mat4_look_at(get_camera_pos(),target,up);
 
     mat4_t scale_matrix =       mat4_make_scale(mesh.scale.x,mesh.scale.y,mesh.scale.z);
     mat4_t translation_matrix = mat4_make_translation(mesh.translation.x,mesh.translation.y,mesh.translation.z);
@@ -141,7 +122,7 @@ void update(void){
 
     int num_faces = array_length(mesh.faces);
     for(int i = 0; i < num_faces; i ++){
-        //if(i != 4)continue;
+        
 
 
         face_t current_face = mesh.faces[i];
@@ -152,8 +133,6 @@ void update(void){
         face_vertices[1] = mesh.vertices[current_face.b ];
         face_vertices[2] = mesh.vertices[current_face.c ];
 
-        
-       
 
         vec4_t transformed_vertices[3];
 
@@ -191,7 +170,6 @@ void update(void){
 
 
         vec3_normalize(&tri_normal);
-        vec3_normalize(&main_light.direction);
 
 
         float orientation_from_camera = vec3_dot(tri_normal,cameraRay);
@@ -241,16 +219,16 @@ void update(void){
                 
                 
                 //Scale to middle of screen
-                projected_points[j].x *= window_width/2.0;
-                projected_points[j].y *= window_height/2.0;
+                projected_points[j].x *= get_window_width()/2.0;
+                projected_points[j].y *= get_window_height()/2.0;
                 
 
                 //Invert Y values to account for flipped y screen coordinate
                 projected_points[j].y *= -1;
 
                 //Translate to middle of screen
-                projected_points[j].x += window_width/2.0;
-                projected_points[j].y += window_height/2.0;
+                projected_points[j].x += get_window_width()/2.0;
+                projected_points[j].y += get_window_height()/2.0;
             
             }
 
@@ -260,7 +238,7 @@ void update(void){
             //Lighting stage
             ////////////////
             
-            float orientation_from_light = -vec3_dot(tri_normal, main_light.direction);
+            float orientation_from_light = -vec3_dot(tri_normal, get_light_direction());
             uint32_t triangle_color = light_apply_intensity(0xFFFFFF,orientation_from_light);
             orientation_from_light = orientation_from_light < 0.15 ? 0.15 : orientation_from_light;
             orientation_from_light = orientation_from_light > 1.00 ? 1.00 : orientation_from_light;
@@ -306,22 +284,29 @@ void process_input(void){
                 // else if(event.key.keysym.sym == SDLK_UP){camera.forward_velocity.z += 2.0 * delta_time;}
                 // else if(event.key.keysym.sym == SDLK_DOWN)camera.forward_velocity.z -= 2.0 * delta_time;
                 else if(event.key.keysym.sym == SDLK_w){
-                    camera.forward_velocity = vec3_mult(camera.direction,(float) 5.0 * delta_time);
-                    camera.position = vec3_add(camera.position,camera.forward_velocity);
+                    set_camera_vel(vec3_mult(get_camera_dir(),(float) 5.0 * delta_time));
+                    set_camera_pos(vec3_add(get_camera_pos(),get_camera_vel()));
                 }
                 else if(event.key.keysym.sym == SDLK_s){
-                    camera.forward_velocity = vec3_mult(camera.direction, (float)5.0 * delta_time);
-                    camera.position = vec3_sub(camera.position,camera.forward_velocity);
+                    set_camera_vel(vec3_mult(get_camera_dir(), (float)5.0 * delta_time));
+                    set_camera_pos(vec3_sub(get_camera_pos(),get_camera_vel()));
                 }
-                else if(event.key.keysym.sym == SDLK_UP)camera.position.y += 12.0 * delta_time;
-                else if(event.key.keysym.sym == SDLK_DOWN)camera.position.y -= 12.0 * delta_time;
+                else if(event.key.keysym.sym == SDLK_UP)set_camera_pos(vec3_add(get_camera_pos(), vec3_new(0,12 * delta_time,0)));
+                else if(event.key.keysym.sym == SDLK_DOWN)set_camera_pos(vec3_sub(get_camera_pos(), vec3_new(0,12 * delta_time,0)));
                 else if(event.key.keysym.sym == SDLK_a){
-                    camera.yaw_angle += 1.0 * delta_time;
-                    // camera.direction = vec3_rotate_y(camera.direction,camera.yaw_angle);
+                    rotate_camera_yaw(1.0 * delta_time);
+                    
                 }
                 else if(event.key.keysym.sym == SDLK_d){
-                    camera.yaw_angle -= 1.0 * delta_time;
-                    // camera.direction = vec3_rotate_y(camera.direction,camera.yaw_angle);
+                    rotate_camera_yaw(-1.0 * delta_time);
+                    
+                }
+                else if(event.key.keysym.sym == SDLK_j){
+                    rotate_camera_pitch( -3.0 * delta_time);
+                }
+                else if(event.key.keysym.sym == SDLK_n){
+                    rotate_camera_pitch( 3.0 * delta_time);
+                    
                 }
                 else if(event.key.keysym.sym == SDLK_1)render_mode = RENDER_WIRE_VERTEX;
                 else if(event.key.keysym.sym == SDLK_2)render_mode = RENDER_WIRE;
@@ -337,10 +322,7 @@ void process_input(void){
 }
 
 void render(void){
-    render_color_buffer();
-    uint32_t col = 0x000000;
-
-    clear_color_buffer_gradient(col,col);
+    clear_color_buffer_gradient(0x000000,0x000000);
     clear_z_buffer();
     draw_grid(10,40);
     
@@ -415,13 +397,11 @@ void render(void){
         }
      
     }
+    render_color_buffer();
    
-    SDL_RenderPresent(renderer);
 }
 
 void free_resources(void){
-    free(color_buffer);
-    free(z_buffer);
     array_free(mesh.faces);
     array_free(mesh.face_normals);
     array_free(mesh.vertices);
