@@ -3,7 +3,7 @@
 #include <math.h>
 #include "swap.h"
 
-
+#include "upng.h"
 
 
 void draw_filled_triangle( 
@@ -118,7 +118,7 @@ void draw_textured_triangle(
     int x0, int y0, float z0, float w0, float u0, float v0,
     int x1, int y1, float z1, float w1, float u1, float v1,
     int x2, int y2, float z2, float w2, float u2, float v2,
-    uint32_t* texture
+    upng_t* texture
 ){
    if(y0 > y1){
         int_swap(&y0,&y1);
@@ -244,9 +244,6 @@ void draw_filled_pixel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t poin
     // interpolated reciprocal of W
     float interpolated_reciprocal_w = (1 / point_a.w) * alpha + (1 / point_b.w) * beta + (1 / point_c.w) * gamma;
 
-    
-
-   
 
     //Only draw pixel if depth of pixel is greater than previous pixel
     // 1 <- right in front of camera 0 -> farthest point to the camera
@@ -254,13 +251,19 @@ void draw_filled_pixel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t poin
     if(interpolated_reciprocal_w > get_z_buffer_at(x, y)){
         draw_pixel(x,y,color);
         //update z buffer of current pixel
-      update_zbuffer(x, y, interpolated_reciprocal_w);
+        update_zbuffer(x, y, interpolated_reciprocal_w);
     }
 }
 
+vec3_t get_triangle_face_normal(vec4_t vertices[3]){
+    vec3_t v1 = vec3_sub(vec3_from_vec4(vertices[1]),vec3_from_vec4(vertices[0]));
+    vec3_t v2 = vec3_sub(vec3_from_vec4(vertices[2]),vec3_from_vec4(vertices[0]));
+    vec3_t tri_normal = vec3_cross(v1,v2);
 
+    return tri_normal;
+}
 
-void draw_textured_texel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t point_c, float u0, float u1, float v0, float v1, float u2, float v2, uint32_t* texture){
+void draw_textured_texel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t point_c, float u0, float u1, float v0, float v1, float u2, float v2, upng_t* texture){
     vec2_t p = {x,y};
 
     vec2_t a = vec2_from_vec4(point_a);
@@ -289,16 +292,24 @@ void draw_textured_texel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t po
     interpolated_u /= interpolated_reciprocal_w;
     interpolated_v /= interpolated_reciprocal_w;
 
+    // Get texture width and height dimensions
+    int texture_width = upng_get_width(texture);
+    int texture_height = upng_get_height(texture);
+
     int tex_x = (int)abs(interpolated_u * texture_width)  % texture_width; // hacky way to prevent texture indicies lesser than or greater than the texture width/height
     int tex_y = (int)abs(interpolated_v * texture_height) % texture_height;
     
     //Only draw pixel if depth of pixel is greater than previous pixel
     // 1 <- right in front of camera 0 -> farthest point to the camera
-
+    
     if(interpolated_reciprocal_w > get_z_buffer_at(x, y) ){
-        draw_pixel(x,y,texture[tex_x + (tex_y * texture_width)]);
+
+        uint32_t* texture_buffer = (uint32_t*) upng_get_buffer(texture);
+
+        draw_pixel(x,y,texture_buffer[tex_x + (tex_y * texture_width)]);
+        
         //update z buffer of current pixel
-       update_zbuffer(x, y, interpolated_reciprocal_w);
+        update_zbuffer(x, y, interpolated_reciprocal_w);
     }
 }
 
