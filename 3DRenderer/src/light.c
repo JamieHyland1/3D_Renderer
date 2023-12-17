@@ -1,5 +1,21 @@
 #include <stdio.h>
 #include <stdint.h>
+#include "light.h"
+
+
+static light_t main_light;
+
+void init_light(vec3_t direction){
+    main_light.direction = direction;
+}
+
+vec3_t get_light_direction(){
+    return main_light.direction;
+}
+
+////////////////////////////////////////////////
+// apply color change based off light intensity
+////////////////////////////////////////////////
 
 uint32_t light_apply_intensity(uint32_t color, float percentage_factor){
     uint32_t a = (color & 0xFF000000);
@@ -11,3 +27,4 @@ uint32_t light_apply_intensity(uint32_t color, float percentage_factor){
 
     return new_color;
 }
+

@@ -20,6 +20,7 @@ void init_frustum_planes(float fov_x, float fov_y, float znear, float zfar){
     frustum_planes[LEFT_FRUSTUM_PLANE].normal = (vec3_t){cos_half_fov_x,0,sin_half_fov_x};
 
     
+    
     frustum_planes[RIGHT_FRUSTUM_PLANE].point  = origin;
     frustum_planes[RIGHT_FRUSTUM_PLANE].normal = (vec3_t){-cos_half_fov_x,0,sin_half_fov_x};
 
@@ -29,7 +30,8 @@ void init_frustum_planes(float fov_x, float fov_y, float znear, float zfar){
     frustum_planes[BOTTOM_FRUSTUM_PLANE].point  = origin;
     frustum_planes[BOTTOM_FRUSTUM_PLANE].normal = (vec3_t){0,cos_half_fov_y,sin_half_fov_y};
 
-frustum_planes[BOTTOM_FRUSTUM_PLANE].normal.y += 0.05;
+    frustum_planes[BOTTOM_FRUSTUM_PLANE].normal.y += 0.05;
+    frustum_planes[TOP_FRUSTUM_PLANE].normal.y -= 0.05;
 
     frustum_planes[NEAR_FRUSTUM_PLANE].point  = (vec3_t){0,0,znear};
     frustum_planes[NEAR_FRUSTUM_PLANE].normal = (vec3_t){0,0,1};
@@ -38,7 +40,6 @@ frustum_planes[BOTTOM_FRUSTUM_PLANE].normal.y += 0.05;
     frustum_planes[FAR_FRUSTUM_PLANE].point  = (vec3_t){0,0,zfar};
     frustum_planes[FAR_FRUSTUM_PLANE].normal = (vec3_t){0,0,-1};
 }
-
 
 void triangles_from_polygon(polygon_t* polygon, triangle_t triangles[], int* num_triangles){
     for(int i = 0; i < polygon->num_vertices-2; i++){
@@ -135,9 +136,9 @@ void clip_polygon_against_plane(polygon_t* polygon, int frustum_plane){
     for(int i = 0; i < num_inside_vertices; i++){
         polygon->vertices[i] = vec3_new(inside_vertices[i].x,inside_vertices[i].y,inside_vertices[i].z);
         polygon->texcoords[i] = new_tex2(inside_texcoords[i].u,inside_texcoords[i].v);
-       
+
     }
-     polygon->num_vertices = num_inside_vertices;
+    polygon->num_vertices = num_inside_vertices;
 }
 
 void clip_polygon(polygon_t* polygon){

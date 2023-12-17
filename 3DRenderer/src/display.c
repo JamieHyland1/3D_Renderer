@@ -3,17 +3,24 @@
 // This file will contain the functions necessary to display our renderer to the screen
 // It will contain various SDL functions and functions related to drawing various primitive shapes
 
-SDL_Window* window = NULL;
-SDL_Renderer* renderer = NULL;
-SDL_Texture* color_buffer_texture = NULL;
-
+static SDL_Window* window = NULL;
+static SDL_Renderer* renderer = NULL;
+static SDL_Texture* color_buffer_texture = NULL;
 
 //declare an array to uint32 elements
-uint32_t* color_buffer = NULL;
-float* z_buffer = NULL;
+static uint32_t* color_buffer = NULL;
+static float* z_buffer = NULL;
 
-int window_width = 640;
-int window_height = 480;
+static int window_width = 320;
+static int window_height = 200;
+
+int get_window_width(){
+    return window_width;
+}
+
+int get_window_height(){
+    return window_height;
+}
 
 
 
@@ -28,16 +35,19 @@ bool initialize_window(void){
 
     SDL_GetCurrentDisplayMode(0, &displayMode);
 
-    window_width = displayMode.w;
-    window_height = displayMode.h;
+    int full_screen_width = displayMode.w;
+    int full_screen_height = displayMode.h;
+
+    window_width = full_screen_width/4;
+    window_height = full_screen_height/4;
 
     //TODO create SDL window
     window = SDL_CreateWindow(
         "The window into jamie's madness",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        window_width,
-        window_height,
+        full_screen_width,
+        full_screen_height,
         SDL_WINDOW_FOREIGN
     );
 
@@ -56,17 +66,33 @@ bool initialize_window(void){
 
     SDL_SetWindowBordered(window,SDL_WINDOWPOS_CENTERED);
 
+
+    // Allocating memory for color buffer and Z buffer
+    color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
+    z_buffer = (float*)malloc(sizeof(float) * window_width * window_height);
+    
+    color_buffer_texture = SDL_CreateTexture(
+        renderer,
+        SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_STREAMING,
+        window_width,
+        window_height
+    );
+
+
+     if(!color_buffer){
+        fprintf(stderr, "couldnt allocate memory for color buffer");
+        return false;
+        
+    }
+
     return true;
 }
 
 
 void clear_color_buffer(uint32_t color){
-    for(int y = 0; y < window_height; y++){
-        for(int x = 0; x < window_width; x++){
-            int index = (window_width * y) + x;
-
-            color_buffer[index] = color;
-        }
+    for(int i = 0; i < window_width * window_height; i++){
+            color_buffer[i] = color;
     }
 }
 int lerp(float a, float b, float t){
@@ -104,12 +130,11 @@ void clear_color_buffer_gradient(uint32_t col1, uint32_t col2){
 
 
 void clear_z_buffer(){
-    for(int y = 0; y < window_height; y++){
-        for(int x =0; x < window_width; x++){
-            z_buffer[(window_width*y) + x] = 0.0;
-        }
+    for(int i = 0; i < window_width * window_height; i++){
+        z_buffer[i] = 0.0;
     }
 }
+
 
 void drawRect(int x, int y, int w, int h, uint32_t color){
     for(int j = y; j <= y+h; j++){
@@ -142,10 +167,11 @@ void draw_grid(int xPlot, int rowSize){
 }
 
 void draw_pixel(int x, int y, uint32_t color){
-    if((x < window_width  && x >= 0) && (y < window_height && y >= 0)){    
-        int index = (y*window_width) + x;
-        color_buffer[index] = color;
+    if(x < 0  || x >= window_width  || y < 0  || y >= window_height){
+        return;
     }
+    int index = (y*window_width) + x;
+    color_buffer[index] = color;
 }
 void render_color_buffer(void){
     SDL_UpdateTexture(
@@ -156,6 +182,8 @@ void render_color_buffer(void){
     );
 
     SDL_RenderCopy(renderer, color_buffer_texture, NULL, NULL);
+
+    SDL_RenderPresent(renderer);
 }
 
 void draw_line(int x0, int y0, int x1, int y1, uint32_t color) {
@@ -184,8 +212,28 @@ void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t colo
 
 
 void destroy_window(void){
-   
+    free(color_buffer);
+    free(z_buffer);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+}
+
+
+float get_z_buffer_at(int x, int y){
+    
+    if((x >= window_width  || x < 0) || (y >= window_height || y < 0)){
+        //printf("zbuffer coordinates: %d, %d\n",x,y);
+        return 0.0;
+    } 
+    
+    return z_buffer[(window_width * y) + x];
+}
+
+void update_zbuffer(int x, int y, float value){
+    if(value < 0.0 || value > 1.0  || x < 0  || x >= window_width  || y < 0  || y >= window_height){
+        return;
+    }
+    
+    z_buffer[(window_width * y) + x] = value;
 }
